@@ -1,0 +1,15 @@
+{
+  "evaluation_id": "eval_1773076325929",
+  "config_evaluation_id": "back_eval_v2",
+  "evaluation_name": "Back-end implementation",
+  "candidate": "Momar_Ndoye_back_eval",
+  "repository_url": "https://git.alt-tools.tech/momar-ndoye/tools_management",
+  "config_path": "back_eval",
+  "started_at": "2026-03-09T17:12:05.929Z",
+  "langfuse_trace_id": "b680186d-6614-4531-ae3f-4bf1d0ef8ac3",
+  "completed_at": "2026-03-09T17:21:00.398Z",
+  "duration_seconds": 534.469,
+  "total_score": 186.39999999999998,
+  "total_max_score": 237,
+  "percentage": 78.64978902953585
+}

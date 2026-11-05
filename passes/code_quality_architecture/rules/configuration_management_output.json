@@ -1,0 +1,84 @@
+{
+  "rule_id": "configuration_management",
+  "rule_name": "Configuration Management & Security",
+  "checkboxes": [
+    {
+      "id": "env_vars_for_config",
+      "description": "Environment variables used for non-DB config (ports, URLs, API keys)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Application port configured via environment variable with sensible fallback to 3000",
+          "location": "src/main.ts:24",
+          "snippet": "await app.listen(process.env.PORT ?? 3000);"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "Database connection parameters (host, user, password, database) all use environment variables",
+          "location": "lib/prisma.ts:5-9",
+          "snippet": "const adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "Prisma configuration uses environment variable for connection string",
+          "location": "prisma.config.ts:11",
+          "snippet": "datasource: {\n    url: process.env[\"MYSQL_CONNECTION_STRING\"],\n  }"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "no_hardcoded_secrets",
+      "description": "No hardcoded credentials or secrets in source code",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "All database credentials use environment variables (process.env.MYSQL_USER, process.env.MYSQL_PASSWORD, etc.) with no hardcoded values in source code. The .env.example file contains template values which is acceptable as it's a documentation file, not actual configuration.",
+          "location": "lib/prisma.ts:5-9",
+          "snippet": "const adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "Docker Compose configuration uses environment variable substitution (${MYSQL_PASSWORD}, ${MYSQL_USER}, etc.) instead of hardcoded values",
+          "location": "docker-compose.yml:10-13",
+          "snippet": "environment:\n      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}\n      MYSQL_DATABASE: ${MYSQL_DATABASE}\n      MYSQL_USER: ${MYSQL_USER}\n      MYSQL_PASSWORD: ${MYSQL_PASSWORD}"
+        }
+      ],
+      "confidence_aggregate": 0.93,
+      "is_bonus": false
+    }
+  ],
+  "score": 3,
+  "max_score": 3,
+  "percentage": 100,
+  "confidence": 0.935,
+  "languages_detected": [
+    "TypeScript",
+    "YAML",
+    "Shell"
+  ],
+  "files_analyzed": [
+    "lib/prisma.ts",
+    "prisma.config.ts",
+    ".env.example",
+    "src/main.ts",
+    "docker-compose.yml",
+    "src/app.module.ts",
+    "src/app.controller.ts",
+    "src/app.service.ts",
+    "src/tools/tools.module.ts",
+    "src/categories/categories.module.ts",
+    "src/usage-logs/usage-logs.module.ts"
+  ],
+  "tool_calls_total": 12,
+  "duration_seconds": 61.742,
+  "reasoning": "The codebase demonstrates excellent configuration management practices. All non-database configuration (application port) and database credentials use environment variables consistently. The main application uses process.env.PORT with a sensible fallback, database connections are configured via environment variables in lib/prisma.ts, and Docker Compose uses variable substitution. No hardcoded secrets were found in any source files - all sensitive data is externalized. The .env.example file contains template values for documentation purposes, which is standard practice and does not constitute a security issue.",
+  "is_bonus": false
+}

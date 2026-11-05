@@ -1,0 +1,126 @@
+{
+  "rule_id": "separation_of_concerns",
+  "rule_name": "Separation of Concerns & Layered Architecture",
+  "checkboxes": [
+    {
+      "id": "controllers_http_only",
+      "description": "Controllers handle only HTTP layer (req/res) without business logic",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "ToolsController.getAll() contains significant business logic including query parameter parsing, enum mapping, filter construction, and sort field building across 30+ lines. Controllers should only handle HTTP request/response extraction and delegate all logic to services.",
+          "location": "src/tools/tools.controller.ts:33-66",
+          "snippet": "const pagination: PaginationFilters = {};\nconst filters: FiltersDto = {};\nconst sortField: Record<string, string> = {};\nif (queries.page !== undefined) pagination.page = queries.page;\nif (queries.limit !== undefined) pagination.limit = queries.limit;\nif (queries.category) filters.category = queries.category;\nif (queries.department) \n  filters.department = tools_owner_department[queries.department as keyof typeof tools_owner_department];\nif (queries.status)\n  filters.status = tools_status[queries.status as keyof typeof tools_status];\nif (queries.min_cost !== undefined) filters.min_cost = Number(queries.min_cost);\nif (queries.max_cost !== undefined) filters.max_cost = Number(queries.max_cost);\nif (queries.cost) sortField['field'] = queries.cost;\nif (queries.date) sortField['field'] = queries.date;\nif (queries.name) sortField['field'] = queries.name;\nif (queries.asc) sortField['order'] = queries.asc;\nif (queries.desc) sortField['order'] = queries.desc;\nconst sortFilters: SortFilters = {\n  field: SortName[sortField['field'] as keyof typeof SortName],\n  order: SortOrder[sortField['order'] as keyof typeof SortOrder],\n};"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "Other controller methods (create, getDetails, update) correctly delegate to service layer without business logic, demonstrating inconsistent implementation within the same controller class.",
+          "location": "src/tools/tools.controller.ts:28-30",
+          "snippet": "@Post()\nasync create(@Body() data: CreateToolDto) {\n  return this.toolService.createTool(data);\n}"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "services_business_logic",
+      "description": "Services layer centralizes business logic and is HTTP-independent",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.93,
+          "reasoning": "ToolsService.createTool() implements proper business validation by checking category existence before creating tool and throwing NotFoundException with business-appropriate error messages, demonstrating service-layer business logic.",
+          "location": "src/tools/tools.service.ts:20-30",
+          "snippet": "async createTool(data: CreateToolDto) {\n  const categorie = await this.categoriesService.getById(data.category_id);\n  if (!categorie)\n    throw new NotFoundException({\n      error: 'Categorie not found',\n      message: `Categorie with ID ${data.category_id} does not exist`,\n    });\n  this.logger.error(\"Categorie not found\")\n  const result = await this.repository.create(data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "ToolsService.getDetailsById() orchestrates multiple data sources (repository and usageLogs services) and applies business transformations (monthly_cost formatting, usage_metrics aggregation), showing proper service-layer coordination.",
+          "location": "src/tools/tools.service.ts:68-80",
+          "snippet": "async getDetailsById(id: number) {\n  const tool = await this.repository.getById(id);\n  if (!tool)\n    throw new NotFoundException({\n      error: 'Tool not found',\n      message: `Tool with ID ${id} does not exist`,\n    });\n  const total = await this.usageLogs.totalSession(id);\n  const avg_session_minutes = await this.usageLogs.averageUsage(id);\n  return {\n    ...tool, monthly_cost: Number(tool.monthly_cost.toDecimalPlaces(2)), \n    usage_metrics: { last_30_days: { total_session: total, avg_session_minutes } },\n  };\n}"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Services are HTTP-independent with no imports of HTTP-specific decorators from @nestjs/common (only Injectable, Logger, NotFoundException). Services work with DTOs and domain objects, not Request/Response objects, confirming proper layer independence.",
+          "location": "src/tools/tools.service.ts:1-9",
+          "snippet": "import { Injectable, Logger, NotFoundException } from '@nestjs/common';\nimport { RepositoryTool } from './model/repository.tool.js';\nimport { CreateToolDto } from './model/dto/create.tool.dto.js';\nimport { FiltersDto } from './model/dto/filters.dto.js';\nimport { PaginationFilters } from './model/dto/pagination.filters.js';\nimport { SortFilters } from './model/dto/sort.filters.js';\nimport { CategoriesService } from '../categories/categories.service.js';\nimport { UsageLogsService } from '../usage-logs/usage-logs.service.js';\nimport { UpdateToolDto } from './model/dto/update.tool.dto.js';"
+        }
+      ],
+      "confidence_aggregate": 0.9,
+      "is_bonus": false
+    },
+    {
+      "id": "models_data_access_only",
+      "description": "Models/Repositories handle only data access (CRUD) without business rules",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.9,
+          "reasoning": "RepositoryTool.getFiltersWhere() contains business logic with complex conditional filter construction including business rules for min/max cost handling and category name mapping. Repositories should only execute data access operations, not implement business rules.",
+          "location": "src/tools/model/repository.tool.ts:17-48",
+          "snippet": "getFiltersWhere(filters: FiltersDto) {\n  const whereFilters: Record<string, unknown> = {};\n  if (filters.category)\n    whereFilters['categories'] = { name: { equals: filters.category } };\n  if (filters.department)\n    whereFilters['owner_department'] = filters.department;\n  if (filters.min_cost !== undefined && filters.max_cost !== undefined) {\n    whereFilters['AND'] = [\n      { monthly_cost: { lte: filters.max_cost } },\n      { monthly_cost: { gte: filters.min_cost } }\n    ]\n  } else {\n    if (filters.min_cost !== undefined)\n      whereFilters['monthly_cost'] = { gte: filters.min_cost };\n    if (filters.max_cost !== undefined)\n      whereFilters['monthly_cost'] = { lte: filters.max_cost };\n  }\n  if (filters.status) whereFilters['status'] = filters.status;\n  return whereFilters;\n}"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "RepositoryTool.paginatedTools() implements business logic including sort field mapping (SortName.cost to monthly_cost) and pagination calculation. Repository should receive ready-to-use Prisma query objects from service layer, not perform business transformations.",
+          "location": "src/tools/model/repository.tool.ts:50-70",
+          "snippet": "async paginatedTools(filters?: FiltersDto, pagination?: PaginationFilters, sortFilters?: SortFilters) {\n  let whereFilters: Record<string, unknown> = {};\n  const sort: Record<string, unknown> = {};\n  if (filters) {\n    whereFilters = this.getFiltersWhere(filters);\n  }\n  if (sortFilters) {\n    if (sortFilters.field === SortName.cost)\n      sort['monthly_cost'] = sortFilters.order ?? SortOrder.asc;\n    if (sortFilters.field === SortName.date)\n      sort['created_at'] = sortFilters.order ?? SortOrder.asc;\n    if (sortFilters.field === SortName.name)\n      sort['name'] = sortFilters.order ?? SortOrder.asc;\n  }\n  if (pagination) {\n    if (pagination.limit) {\n      if (pagination.page) {\n        return prisma.tools.findMany({\n          skip: (pagination.page - 1) * pagination.limit,\n          take: pagination.limit"
+        }
+      ],
+      "confidence_aggregate": 0.89,
+      "is_bonus": false
+    },
+    {
+      "id": "no_db_queries_in_controllers",
+      "description": "No direct database queries in controllers",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "All controllers delegate to services without any direct database access. No Prisma client imports or database queries found in any controller file. ToolsController consistently calls service methods for all operations.",
+          "location": "src/tools/tools.controller.ts:1-30",
+          "snippet": "import { Body, Controller, Post, Get, Query, Param, Put, ParseIntPipe, Logger } from '@nestjs/common';\nimport { CreateToolDto } from './model/dto/create.tool.dto.js';\nimport { ToolsService } from './tools.service.js';\n// No prisma imports\n\n@Controller('api/tools')\nexport class ToolsController {\n  constructor(private readonly toolService: ToolsService) {}\n  \n  @Post()\n  async create(@Body() data: CreateToolDto) {\n    return this.toolService.createTool(data);\n  }"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "AppController also follows the pattern of no database queries, only service delegation, confirming consistent application of this principle across all controllers.",
+          "location": "src/app.controller.ts:1-12",
+          "snippet": "import { Controller, Get } from '@nestjs/common';\nimport { AppService } from './app.service.js';\n\n@Controller()\nexport class AppController {\n  constructor(private readonly appService: AppService) {}\n\n  @Get()\n  getHello(): string {\n    return this.appService.getHello();\n  }\n}"
+        }
+      ],
+      "confidence_aggregate": 0.97,
+      "is_bonus": false
+    }
+  ],
+  "score": 3,
+  "max_score": 6,
+  "percentage": 50,
+  "confidence": 0.925,
+  "languages_detected": [
+    "TypeScript"
+  ],
+  "files_analyzed": [
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/model/repository.tool.ts",
+    "src/categories/categories.service.ts",
+    "src/categories/model/categories.repository.ts",
+    "src/usage-logs/usage-logs.service.ts",
+    "src/usage-logs/model/repositoty.usage.logs.ts",
+    "src/app.controller.ts",
+    "src/app.service.ts"
+  ],
+  "tool_calls_total": 6,
+  "duration_seconds": 117.968,
+  "reasoning": "This NestJS application implements a 3-layer architecture (Controller-Service-Repository) with mixed results. The positive aspects include complete absence of database queries in controllers (all delegate to services) and services that properly centralize business logic with validation, orchestration, and HTTP independence. However, there are two critical violations: (1) ToolsController.getAll contains 30+ lines of business logic for query parsing, enum mapping, and filter construction that should be in the service layer, and (2) Repository classes contain business logic in methods like getFiltersWhere and paginatedTools which implement conditional filtering rules and field mapping instead of pure data access. The architecture foundation is solid but needs refinement to achieve proper separation of concerns, particularly moving business logic from controllers and repositories into the service layer where it belongs.",
+  "is_bonus": false
+}

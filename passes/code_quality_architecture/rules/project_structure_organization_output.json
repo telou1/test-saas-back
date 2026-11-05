@@ -1,0 +1,106 @@
+{
+  "rule_id": "project_structure_organization",
+  "rule_name": "Project Structure & Organization",
+  "checkboxes": [
+    {
+      "id": "clear_folder_structure",
+      "description": "Clear folder structure with dedicated directories (controllers/, services/, models/)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.9,
+          "reasoning": "Project uses NestJS feature-based modules (tools/, categories/, usage-logs/) instead of traditional layered architecture with dedicated controllers/, services/, models/ directories. While the structure is clear and follows NestJS conventions, it does not match the specific requirement for dedicated directories mentioned in the criteria.",
+          "location": "src/ directory structure",
+          "snippet": "src/\n  tools/\n    tools.controller.ts\n    tools.service.ts\n    tools.module.ts\n    model/\n  categories/\n    categories.service.ts\n    categories.module.ts\n    model/\n  usage-logs/\n    usage-logs.service.ts\n    usage-logs.module.ts\n    model/"
+        },
+        {
+          "confidence": 0.85,
+          "reasoning": "Controllers, services, and models are co-located within feature modules rather than separated into dedicated top-level directories. This is a valid NestJS pattern but doesn't meet the literal requirement for 'dedicated directories (controllers/, services/, models/)'.",
+          "location": "src/tools/tools.controller.ts, src/tools/tools.service.ts, src/tools/model/",
+          "snippet": "// Controllers and services are within feature folders\n// Not in dedicated controllers/ or services/ directories"
+        }
+      ],
+      "confidence_aggregate": 0.88,
+      "is_bonus": false
+    },
+    {
+      "id": "consistent_naming",
+      "description": "Consistent naming conventions applied across all files",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "Repository naming is inconsistent across modules: 'repository.tool.ts' uses prefix pattern, 'categories.repository.ts' uses suffix pattern, and 'repositoty.usage.logs.ts' contains a typo ('repositoty' instead of 'repository').",
+          "location": "src/tools/model/repository.tool.ts, src/categories/model/categories.repository.ts, src/usage-logs/model/repositoty.usage.logs.ts",
+          "snippet": "// Inconsistent repository file naming:\n// src/tools/model/repository.tool.ts (prefix)\n// src/categories/model/categories.repository.ts (suffix)\n// src/usage-logs/model/repositoty.usage.logs.ts (typo)"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Class naming for repositories is also inconsistent: RepositoryTool vs CategoriesRepository vs RepositoryUsageLogs, showing lack of unified naming convention.",
+          "location": "src/tools/model/repository.tool.ts:8, src/categories/model/categories.repository.ts:3, src/usage-logs/model/repositoty.usage.logs.ts:3",
+          "snippet": "export class RepositoryTool { ... }\nexport class CategoriesRepository { ... }\nexport class RepositoryUsageLogs { ... }"
+        }
+      ],
+      "confidence_aggregate": 0.9,
+      "is_bonus": false
+    },
+    {
+      "id": "config_utilities_isolated",
+      "description": "Configuration and utilities properly isolated in dedicated folders",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Configuration is properly isolated in the lib/ folder. The Prisma database client configuration with connection settings is separated from business logic in a dedicated lib/prisma.ts file.",
+          "location": "lib/prisma.ts:1-14",
+          "snippet": "import 'dotenv/config';\nimport { PrismaMariaDb } from '@prisma/adapter-mariadb';\nimport { PrismaClient } from '../generated/prisma/client.js';\n\nconst adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});\nconst prisma = new PrismaClient({ adapter });\n\nexport { prisma };"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "Utility scripts are isolated in a dedicated scripts/ folder, separate from application code, containing database management and testing utilities.",
+          "location": "scripts/ directory",
+          "snippet": "scripts/\n  reset-all.sh\n  start-mysql.sh\n  test-connections.sh"
+        }
+      ],
+      "confidence_aggregate": 0.93,
+      "is_bonus": false
+    }
+  ],
+  "score": 1,
+  "max_score": 3,
+  "percentage": 33.33333333333333,
+  "confidence": 0.9033333333333333,
+  "languages_detected": [
+    "TypeScript",
+    "JavaScript",
+    "SQL",
+    "Shell"
+  ],
+  "files_analyzed": [
+    "src/app.module.ts",
+    "src/app.controller.ts",
+    "src/app.service.ts",
+    "src/main.ts",
+    "lib/prisma.ts",
+    "src/tools/tools.module.ts",
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/categories/categories.module.ts",
+    "src/categories/categories.service.ts",
+    "src/usage-logs/usage-logs.module.ts",
+    "src/usage-logs/usage-logs.service.ts",
+    "src/categories/model/categories.repository.ts",
+    "src/usage-logs/model/repositoty.usage.logs.ts",
+    "src/tools/model/repository.tool.ts"
+  ],
+  "tool_calls_total": 11,
+  "duration_seconds": 77.021,
+  "reasoning": "The project follows NestJS feature-based module architecture rather than traditional layered architecture. While this is a valid and modern approach, it does not meet the specific criteria requiring dedicated controllers/, services/, and models/ directories. Naming conventions show inconsistencies particularly in repository files with mixed patterns and a typo. However, configuration and utilities are properly isolated in dedicated folders (lib/ and scripts/), demonstrating good separation of concerns in that aspect. Overall score: 1/3 points.",
+  "is_bonus": false
+}

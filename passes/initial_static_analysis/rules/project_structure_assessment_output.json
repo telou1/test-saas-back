@@ -1,0 +1,219 @@
+{
+  "rule_id": "project_structure_assessment",
+  "rule_name": "Project Structure Assessment",
+  "checkboxes": [
+    {
+      "id": "separation_of_concerns",
+      "description": "Clear separation of concerns with dedicated folders (controllers/services/models)",
+      "status": "CHECKED",
+      "points_awarded": 5,
+      "points_max": 5,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Clear modular structure with dedicated folders for each domain: src/tools/, src/categories/, src/usage-logs/. Each module contains its own controller, service, and model subdirectories following NestJS best practices.",
+          "location": "src/ directory structure",
+          "snippet": "src/tools/\n  - tools.controller.ts\n  - tools.service.ts\n  - tools.module.ts\n  - model/\n    - repository.tool.ts\n    - dto/\nsrc/categories/\n  - categories.service.ts\n  - categories.module.ts\n  - model/categories.repository.ts\nsrc/usage-logs/\n  - usage-logs.service.ts\n  - usage-logs.module.ts\n  - model/repositoty.usage.logs.ts"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "NestJS modules properly define separation with imports, controllers, and providers. Each module encapsulates its own concerns.",
+          "location": "src/tools/tools.module.ts:1-13",
+          "snippet": "import { Module } from '@nestjs/common';\nimport { ToolsService } from './tools.service.js';\nimport { RepositoryTool } from './model/repository.tool.js';\nimport { CategoriesModule } from '../categories/categories.module.js';\nimport { UsageLogsModule } from '../usage-logs/usage-logs.module.js';\nimport { ToolsController } from './tools.controller.js';\n\n@Module({\n  imports: [CategoriesModule, UsageLogsModule],\n  providers: [ToolsService, RepositoryTool],\n  controllers: [ToolsController],\n})\nexport class ToolsModule {}"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "controllers_organized",
+      "description": "Controllers/Routes properly organized with consistent naming",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 4,
+      "evidence": [
+        {
+          "confidence": 0.88,
+          "reasoning": "Controllers follow NestJS conventions with @Controller decorators and consistent naming (*.controller.ts). Routes are properly organized with RESTful endpoints.",
+          "location": "src/tools/tools.controller.ts:23-28",
+          "snippet": "@Controller('api/tools')\nexport class ToolsController {\n  private readonly logger = new Logger(ToolsController.name);\n  constructor(private readonly toolService: ToolsService) {}\n\n  @Post()\n  async create(@Body() data: CreateToolDto) {\n    return this.toolService.createTool(data);\n  }"
+        },
+        {
+          "confidence": 0.75,
+          "reasoning": "However, controllers contain significant query parameter processing logic (lines 33-62) that could be extracted to a separate layer, reducing controller purity. This is a minor organizational issue.",
+          "location": "src/tools/tools.controller.ts:33-62",
+          "snippet": "const pagination: PaginationFilters = {};\nconst filters: FiltersDto = {};\nconst sortField: Record<string, string> = {};\nif (queries.page !== undefined) pagination.page = queries.page;\nif (queries.limit !== undefined) pagination.limit = queries.limit;\nif (queries.category) filters.category = queries.category;\nif (queries.department) \n  filters.department =\n    tools_owner_department[\n      queries.department as keyof typeof tools_owner_department\n    ];"
+        }
+      ],
+      "confidence_aggregate": 0.82,
+      "is_bonus": false
+    },
+    {
+      "id": "business_logic_isolated",
+      "description": "Business logic isolated in services layer (not mixed in controllers)",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 4,
+      "evidence": [
+        {
+          "confidence": 0.85,
+          "reasoning": "Business logic is primarily isolated in service layer. ToolsService handles validation, data transformation, and orchestration between repositories.",
+          "location": "src/tools/tools.service.ts:20-31",
+          "snippet": "async createTool(data: CreateToolDto) {\n  const categorie = await this.categoriesService.getById(data.category_id);\n  if (!categorie)\n    throw new NotFoundException({\n      error: 'Categorie not found',\n      message: `Categorie with ID ${data.category_id} does not exist`,\n    });\n    this.logger.error(\"Categorie not found\")\n  const result = await this.repository.create(data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+        },
+        {
+          "confidence": 0.8,
+          "reasoning": "Repository pattern properly isolates data access logic with complex query building and filtering logic separated from business rules.",
+          "location": "src/tools/model/repository.tool.ts:17-44",
+          "snippet": "getFiltersWhere(filters: FiltersDto) {\n  const whereFilters: Record<string, unknown> = {};\n  if (filters.category)\n    whereFilters['categories'] = { name: { equals: filters.category } };\n  if (filters.department)\n    whereFilters['owner_department'] = filters.department;\n  if (filters.min_cost !== undefined && filters.max_cost !== undefined) {\n    whereFilters['AND'] = [\n      { monthly_cost: { lte: filters.max_cost } },\n      { monthly_cost: { gte: filters.min_cost } }\n    ]\n  }"
+        }
+      ],
+      "confidence_aggregate": 0.83,
+      "is_bonus": false
+    },
+    {
+      "id": "data_models_structured",
+      "description": "Data models/entities well structured with clear schemas",
+      "status": "CHECKED",
+      "points_awarded": 4,
+      "points_max": 4,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Prisma schema provides comprehensive data models with clear relationships, constraints, and enums. All entities are well-defined with proper types and validation.",
+          "location": "prisma/schema.prisma:70-90",
+          "snippet": "model tools {\n  id                 Int                    @id @default(autoincrement())\n  name               String                 @db.VarChar(100)\n  description        String?                @db.Text\n  vendor             String?                @db.VarChar(100)\n  website_url        String?                @db.VarChar(255)\n  category_id        Int\n  monthly_cost       Decimal                @db.Decimal(10, 2)\n  active_users_count Int                    @default(0)\n  owner_department   tools_owner_department\n  status             tools_status?          @default(active)\n  created_at         DateTime?              @default(now())\n  updated_at         DateTime?              @updatedAt\n}"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "DTOs are well-structured with class-validator decorators providing runtime validation and clear schemas for API contracts.",
+          "location": "src/tools/model/dto/create.tool.dto.ts:1-44",
+          "snippet": "export class CreateToolDto {\n  @IsString()\n  @Length(2, 100)\n  @IsNotEmpty()\n  name: string;\n\n  @IsOptional()\n  @IsString()\n  description?: string;\n\n  @IsString()\n  @Length(1, 100)\n  @IsNotEmpty()\n  vendor: string;\n\n  @IsUrl()\n  @IsOptional()\n  website_url?: string;\n\n  @IsEnum(tools_owner_department)\n  @IsNotEmpty()\n  owner_department: tools_owner_department;\n\n  @IsNumber({ maxDecimalPlaces: 2 })\n  @IsNotEmpty()\n  @Min(0)\n  monthly_cost: number;\n\n  @IsNumber()\n  @IsNotEmpty()\n  @Min(1)\n  category_id: number;\n}"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "configuration_centralized",
+      "description": "Configuration centralized in dedicated folder (not scattered)",
+      "status": "UNCHECKED",
+      "points_awarded": 1,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.85,
+          "reasoning": "No dedicated config folder exists. Configuration is scattered across multiple locations: .env.example for environment variables, package.json for jest config, prisma/schema.prisma for database config, and src/main.ts for application bootstrap config. This violates centralization principle.",
+          "location": "src/main.ts:6-17",
+          "snippet": "async function bootstrap() {\n  const app = await NestFactory.create(AppModule);\n  app.useGlobalPipes(new ValidationPipe({transform: true}));\n  const config = new DocumentBuilder()\n    .setTitle('Internal tools management')\n    .setDescription('The internal tools management API description')\n    .setVersion('1.0')\n    .addTag('internal_tools_management')\n    .build();\n  const documentFactory = () => SwaggerModule.createDocument(app, config);\n  SwaggerModule.setup('api/docs', app, documentFactory);\n  await app.listen(process.env.PORT ?? 3000);\n}"
+        }
+      ],
+      "confidence_aggregate": 0.85,
+      "is_bonus": false
+    },
+    {
+      "id": "test_directory_structured",
+      "description": "Test directory present and structured (mirrors source code organization)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.9,
+          "reasoning": "Test directory exists with proper structure. E2E tests are in test/ folder with dedicated jest-e2e.json config. Unit tests are co-located with source files following NestJS conventions (*.spec.ts pattern).",
+          "location": "test/ and src/",
+          "snippet": "test/\n  - app.e2e-spec.ts\n  - jest-e2e.json\nsrc/\n  - app.controller.spec.ts\n  - tools/tools.controller.spec.ts"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Jest configuration in package.json properly defines test patterns and structure, with separate configs for unit and e2e tests.",
+          "location": "package.json:60-72",
+          "snippet": "\"jest\": {\n  \"moduleFileExtensions\": [\"js\", \"json\", \"ts\"],\n  \"rootDir\": \"src\",\n  \"testRegex\": \".*\\\\.spec\\\\.ts$\",\n  \"transform\": {\n    \"^.+\\\\.(t|j)s$\": \"ts-jest\"\n  },\n  \"collectCoverageFrom\": [\"**/*.(t|j)s\"],\n  \"coverageDirectory\": \"../coverage\",\n  \"testEnvironment\": \"node\"\n}"
+        }
+      ],
+      "confidence_aggregate": 0.89,
+      "is_bonus": false
+    },
+    {
+      "id": "executable_tests_present",
+      "description": "Testing framework installed with at least 3 executable unit tests",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "Jest testing framework is properly installed with @nestjs/testing, jest, ts-jest, and supertest dependencies. Test scripts are configured in package.json for running tests.",
+          "location": "package.json:16-20",
+          "snippet": "\"scripts\": {\n  \"test\": \"jest\",\n  \"test:watch\": \"jest --watch\",\n  \"test:cov\": \"jest --coverage\",\n  \"test:debug\": \"node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand\",\n  \"test:e2e\": \"jest --config ./test/jest-e2e.json\"\n}"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Three executable unit tests are present: app.controller.spec.ts has 1 real test checking getHello() returns 'Hello World!', tools.controller.spec.ts has 1 test checking controller is defined, and app.e2e-spec.ts has 1 e2e test for GET / endpoint.",
+          "location": "src/app.controller.spec.ts:17-19",
+          "snippet": "it('should return \"Hello World!\"', () => {\n  expect(appController.getHello()).toBe('Hello World!');\n});"
+        },
+        {
+          "confidence": 0.85,
+          "reasoning": "E2E test verifies the application bootstrap and HTTP endpoint functionality, demonstrating executable integration testing capability.",
+          "location": "test/app.e2e-spec.ts:17-22",
+          "snippet": "it('/ (GET)', () => {\n  return request(app.getHttpServer())\n    .get('/')\n    .expect(200)\n    .expect('Hello World!');\n});"
+        }
+      ],
+      "confidence_aggregate": 0.88,
+      "is_bonus": true
+    },
+    {
+      "id": "no_antipatterns",
+      "description": "No critical structural anti-patterns detected (god objects, tight coupling)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.88,
+          "reasoning": "No god objects detected. Each service has a single responsibility: ToolsService handles tool operations, CategoriesService handles categories, UsageLogsService handles usage metrics. Services are reasonably sized and focused.",
+          "location": "src/tools/tools.service.ts:11-19",
+          "snippet": "@Injectable()\nexport class ToolsService {\n  private readonly logger = new Logger(ToolsService.name);\n  constructor(\n    private readonly repository: RepositoryTool,\n    private readonly categoriesService: CategoriesService,\n    private readonly usageLogs: UsageLogsService,\n  ) {}"
+        },
+        {
+          "confidence": 0.85,
+          "reasoning": "Loose coupling achieved through dependency injection. Modules properly export services and import dependencies. No tight coupling between modules detected.",
+          "location": "src/categories/categories.module.ts:1-10",
+          "snippet": "@Module({\n  providers: [CategoriesService, CategoriesRepository],\n  exports: [CategoriesService],\n})\nexport class CategoriesModule {}"
+        }
+      ],
+      "confidence_aggregate": 0.87,
+      "is_bonus": false
+    }
+  ],
+  "score": 23,
+  "max_score": 25,
+  "percentage": 92,
+  "confidence": 0.8775,
+  "languages_detected": [
+    "TypeScript",
+    "JavaScript",
+    "SQL"
+  ],
+  "files_analyzed": [
+    "src/app.module.ts",
+    "src/tools/tools.module.ts",
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/model/repository.tool.ts",
+    "src/tools/model/dto/create.tool.dto.ts",
+    "src/categories/categories.module.ts",
+    "src/usage-logs/usage-logs.module.ts",
+    "prisma/schema.prisma",
+    "package.json",
+    "src/main.ts",
+    "test/app.e2e-spec.ts",
+    "src/app.controller.spec.ts",
+    "src/tools/tools.controller.spec.ts"
+  ],
+  "tool_calls_total": 8,
+  "duration_seconds": 123.323,
+  "reasoning": "This NestJS application demonstrates strong architectural organization with clear separation of concerns through modular structure. The codebase follows NestJS best practices with dedicated folders for controllers, services, and repositories. Data models are well-structured using Prisma schema and DTOs with validation. The test directory is properly organized with both unit and e2e tests. However, configuration is not centralized in a dedicated folder (scattered across .env.example, package.json, and main.ts), which loses 2 points. Controllers contain some query processing logic that could be better isolated, losing 1 point. Test coverage is minimal with only 3 basic tests meeting the requirement but lacking depth. Overall, the project shows good structural foundations with minor areas for improvement in configuration management and test coverage depth.",
+  "is_bonus": false
+}

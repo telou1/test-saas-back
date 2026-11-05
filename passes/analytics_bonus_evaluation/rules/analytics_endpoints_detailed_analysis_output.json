@@ -1,0 +1,287 @@
+{
+  "rule_id": "analytics_endpoints_detailed_analysis",
+  "rule_name": "Analytics Endpoints Detailed Analysis",
+  "checkboxes": [
+    {
+      "id": "dept_costs_aggregation",
+      "description": "department-costs: SUM(monthly_cost) GROUP BY department aggregation correct",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No analytics endpoints found in the codebase. The ToolsController only implements basic CRUD operations (create, getAll, getDetails, update) at /api/tools. No /analytics/department-costs route exists, and no SUM(monthly_cost) GROUP BY department aggregation is implemented.",
+          "location": "src/tools/tools.controller.ts:23-85",
+          "snippet": "@Controller('api/tools')\nexport class ToolsController {\n  @Post() async create(@Body() data: CreateToolDto) {...}\n  @Get() async getAll(@Query() queries: QueryTool) {...}\n  @Get(':id') async getDetails(@Param('id', ParseIntPipe) id: number) {...}\n  @Put(':id') async update(...) {...}\n}"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "No analytics module exists in the application. Only ToolsModule, CategoriesModule, and UsageLogsModule are registered in AppModule. No analytics-related files found when searching for pattern **/*analytic*.",
+          "location": "src/app.module.ts:7-12",
+          "snippet": "@Module({\n  imports: [ToolsModule, CategoriesModule, UsageLogsModule],\n  controllers: [AppController],\n  providers: [AppService],\n})"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "dept_costs_metrics",
+      "description": "department-costs: Business metrics calculated (total_cost, tools_count, average, percentage)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No department-costs endpoint exists. Business metrics (total_cost, tools_count, average, percentage) are not calculated anywhere. The ToolsService only implements createTool, getAllPaginated, getDetailsById, and update methods with no analytics logic.",
+          "location": "src/tools/tools.service.ts:1-95",
+          "snippet": "@Injectable()\nexport class ToolsService {\n  async createTool(data: CreateToolDto) {...}\n  async getAllPaginated(filters?, pagination?, sortFilters?) {...}\n  async getDetailsById(id: number) {...}\n  async update(id: number, data: UpdateToolDto) {...}\n}"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "dept_costs_percentage",
+      "description": "department-costs: Percentage totals 100% and most_expensive department logic present",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No department-costs endpoint exists. Percentage calculations ensuring totals equal 100% and most_expensive department logic are not implemented. No analytics routes found in any controller.",
+          "location": "src/tools/tools.controller.ts:23-85",
+          "snippet": "Only basic CRUD endpoints found: POST /api/tools, GET /api/tools, GET /api/tools/:id, PUT /api/tools/:id. No /analytics routes."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "expensive_tools_cost_per_user",
+      "description": "expensive-tools: cost_per_user formula with division-by-zero handling",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No expensive-tools endpoint exists. The cost_per_user formula (monthly_cost / active_users_count) with division-by-zero handling is not implemented anywhere in the codebase.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No /analytics/expensive-tools route found. Only basic tool CRUD operations exist at /api/tools."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "expensive_tools_efficiency",
+      "description": "expensive-tools: efficiency_rating logic based on company average",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No expensive-tools endpoint exists. efficiency_rating logic based on company average cost_per_user comparison is not implemented. No analytics service or repository found.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "ToolsController only has create, getAll, getDetails, update methods. No analytics endpoints."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "expensive_tools_savings",
+      "description": "expensive-tools: potential_savings calculation and sorting implemented",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No expensive-tools endpoint exists. potential_savings calculation and sorting by savings are not implemented. No analytics logic found in services.",
+          "location": "src/tools/tools.service.ts:1-95",
+          "snippet": "ToolsService contains no analytics methods, only basic CRUD operations."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "category_join_aggregations",
+      "description": "tools-by-category: JOIN tools/categories with GROUP BY aggregations",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No tools-by-category analytics endpoint exists. JOIN operations between tools and categories tables with GROUP BY aggregations are not implemented. CategoriesService only has basic getById method.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No /analytics/tools-by-category route found. Only /api/tools routes exist."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "category_efficiency_budget",
+      "description": "tools-by-category: most_efficient_category and percentage_of_budget calculated",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No tools-by-category endpoint exists. Calculations for most_efficient_category and percentage_of_budget are not implemented. No analytics aggregations found.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No analytics endpoints found in the codebase. Only basic CRUD operations."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "category_budget_percentage",
+      "description": "tools-by-category: Budget percentages total 100% across categories",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No tools-by-category endpoint exists. Budget percentage calculations ensuring totals equal 100% across categories are not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No analytics routes found. Only /api/tools with basic operations."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "low_usage_warning_level",
+      "description": "low-usage-tools: warning_level logic based on cost_per_user thresholds",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No low-usage-tools endpoint exists. warning_level logic based on cost_per_user thresholds (critical >$50, high $30-50, medium $10-30, low <$10) is not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No /analytics/low-usage-tools route found. Only basic CRUD at /api/tools."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "low_usage_recommendations",
+      "description": "low-usage-tools: potential_action recommendations per warning level",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No low-usage-tools endpoint exists. potential_action recommendations per warning level (immediate review, evaluate usage, monitor, acceptable) are not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No analytics endpoints found in any controller."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "low_usage_savings",
+      "description": "low-usage-tools: potential_savings monthly and annual calculations correct",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No low-usage-tools endpoint exists. potential_savings calculations for monthly and annual savings (monthly_cost * 12) are not implemented.",
+          "location": "src/tools/tools.service.ts:1-95",
+          "snippet": "ToolsService has no analytics methods. Only createTool, getAllPaginated, getDetailsById, update."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "vendor_aggregations",
+      "description": "vendor-summary: GROUP BY vendor with all required aggregations",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No vendor-summary endpoint exists. GROUP BY vendor with aggregations (total_cost, tools_count, total_users, avg_cost_per_tool) is not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No /analytics/vendor-summary route found. Only /api/tools routes exist."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "vendor_departments",
+      "description": "vendor-summary: Departments concatenation unique and alphabetically sorted",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No vendor-summary endpoint exists. Departments concatenation logic (unique values, alphabetically sorted) is not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No analytics endpoints found in the codebase."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "vendor_efficiency_logic",
+      "description": "vendor-summary: vendor_efficiency and single_tool_vendors logic implemented",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No vendor-summary endpoint exists. vendor_efficiency calculation (total_users / tools_count) and single_tool_vendors boolean flag are not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "No analytics routes found. Only basic CRUD operations at /api/tools."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    }
+  ],
+  "score": 0,
+  "max_score": 25,
+  "percentage": 0,
+  "confidence": 0.9499999999999997,
+  "languages_detected": [
+    "typescript"
+  ],
+  "files_analyzed": [
+    "src/app.module.ts",
+    "src/main.ts",
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/tools.module.ts",
+    "src/categories/categories.module.ts",
+    "src/usage-logs/usage-logs.module.ts"
+  ],
+  "tool_calls_total": 20,
+  "duration_seconds": 119.798,
+  "reasoning": "After comprehensive analysis of the codebase structure, NO analytics endpoints are implemented. The application only contains basic CRUD operations for tools management. Investigation revealed: (1) Module structure shows only ToolsModule, CategoriesModule, UsageLogsModule registered in AppModule - no analytics module exists. (2) ToolsController at /api/tools only implements POST (create), GET (getAll), GET/:id (getDetails), PUT/:id (update) - no /analytics routes. (3) ToolsService only contains createTool, getAllPaginated, getDetailsById, update methods - no analytics business logic. (4) Search for analytics-related files returned zero results. (5) All 5 required analytics endpoints are completely missing: /analytics/department-costs, /analytics/expensive-tools, /analytics/tools-by-category, /analytics/low-usage-tools, /analytics/vendor-summary. (6) No SQL aggregations, GROUP BY operations, JOIN logic, percentage calculations, or business metrics implementations found. The codebase requires a complete analytics module with controller, service, and repository implementing all specified endpoints with proper aggregations, formulas, edge case handling, and business logic. Total score: 0/25 points.",
+  "is_bonus": true
+}

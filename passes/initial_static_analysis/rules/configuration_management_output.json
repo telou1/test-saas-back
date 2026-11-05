@@ -1,0 +1,156 @@
+{
+  "rule_id": "configuration_management",
+  "rule_name": "Configuration Management",
+  "checkboxes": [
+    {
+      "id": "env_example_present",
+      "description": ".env.example file present with all required variables documented",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 4,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": ".env.example file exists and documents all required database configuration variables including MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE, MYSQL_PORT, and PHPMYADMIN_PORT",
+          "location": ".env.example:1-11",
+          "snippet": "# MySQL Configuration\nMYSQL_ROOT_PASSWORD=root123secure\nMYSQL_DATABASE=internal_tools\nMYSQL_USER=dev\nMYSQL_PASSWORD=dev123\nMYSQL_PORT=3306\nMYSQL_HOST=localhost"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "PORT variable is used in src/main.ts but NOT documented in .env.example file, which is a gap in documentation. Deducting 1 point for incomplete variable documentation.",
+          "location": "src/main.ts:17",
+          "snippet": "await app.listen(process.env.PORT ?? 3000);"
+        }
+      ],
+      "confidence_aggregate": 0.93,
+      "is_bonus": false
+    },
+    {
+      "id": "db_credentials_externalized",
+      "description": "Database credentials externalized - no hardcoded DB_PASSWORD/DB_USER in source",
+      "status": "CHECKED",
+      "points_awarded": 5,
+      "points_max": 5,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "Database credentials are fully externalized using environment variables. No hardcoded DB_PASSWORD or DB_USER found in source code. All database connection parameters use process.env.",
+          "location": "lib/prisma.ts:5-10",
+          "snippet": "const adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "Prisma configuration also uses environment variable for database connection string, confirming consistent externalization pattern",
+          "location": "prisma.config.ts:10-12",
+          "snippet": "datasource: {\n    url: process.env[\"MYSQL_CONNECTION_STRING\"],\n  }"
+        }
+      ],
+      "confidence_aggregate": 0.97,
+      "is_bonus": false
+    },
+    {
+      "id": "port_configurable",
+      "description": "Application port configurable via environment (process.env.PORT or equivalent)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Application port is configurable via process.env.PORT environment variable with a fallback to 3000. This allows deployment flexibility.",
+          "location": "src/main.ts:17",
+          "snippet": "await app.listen(process.env.PORT ?? 3000);"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": false
+    },
+    {
+      "id": "environment_mode_managed",
+      "description": "Environment mode managed properly (NODE_ENV/ENVIRONMENT dev/prod/test)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "No NODE_ENV or ENVIRONMENT variable usage found in the codebase. Searched main.ts and all source files - no environment-specific behavior management (dev/prod/test modes) is implemented.",
+          "location": "src/main.ts:1-18",
+          "snippet": "import { NestFactory } from '@nestjs/core';\nimport { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';\nimport { AppModule } from './app.module.js';\nimport { ValidationPipe } from '@nestjs/common';\n\nasync function bootstrap() {\n  const app = await NestFactory.create(AppModule);\n  app.useGlobalPipes(new ValidationPipe({transform: true}));\n  const config = new DocumentBuilder()\n    .setTitle('Internal tools management')\n    .setDescription('The internal tools management API description')\n    .setVersion('1.0')\n    .addTag('internal_tools_management')\n    .build();\n  const documentFactory = () => SwaggerModule.createDocument(app, config);\n  SwaggerModule.setup('api/docs', app, documentFactory);\n  await app.listen(process.env.PORT ?? 3000);\n}\nbootstrap();"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Package.json has dev/prod scripts but the application code does not check NODE_ENV for environment-specific configuration or behavior",
+          "location": "package.json:11-14",
+          "snippet": "\"start\": \"nest start\",\n\"start:dev\": \"nest start --watch\",\n\"start:debug\": \"nest start --debug --watch\",\n\"start:prod\": \"node dist/main\""
+        }
+      ],
+      "confidence_aggregate": 0.9,
+      "is_bonus": false
+    },
+    {
+      "id": "no_hardcoded_secrets",
+      "description": "No API keys or secrets hardcoded in source files (scan for API_KEY/SECRET patterns)",
+      "status": "CHECKED",
+      "points_awarded": 4,
+      "points_max": 4,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Comprehensive scan of source code found no hardcoded API keys, secrets, or credentials. All sensitive data properly uses environment variables via process.env pattern.",
+          "location": "lib/prisma.ts:5-10",
+          "snippet": "host: process.env.MYSQL_HOST,\nuser: process.env.MYSQL_USER,\npassword: process.env.MYSQL_PASSWORD,\ndatabase: process.env.MYSQL_DATABASE"
+        },
+        {
+          "confidence": 0.93,
+          "reasoning": "Main application entry point scanned - no hardcoded API_KEY, SECRET, TOKEN, or similar patterns found",
+          "location": "src/main.ts:1-18",
+          "snippet": "No hardcoded secrets found in main application file"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "no_hardcoded_urls",
+      "description": "No hardcoded URLs, especially database hosts (no localhost:3306 hardcoded)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.85,
+          "reasoning": "Hardcoded port number 3000 found as fallback value in main.ts. While it uses environment variable, the hardcoded fallback violates the requirement for no hardcoded values. This is a localhost port hardcoded in source.",
+          "location": "src/main.ts:17",
+          "snippet": "await app.listen(process.env.PORT ?? 3000);"
+        }
+      ],
+      "confidence_aggregate": 0.85,
+      "is_bonus": false
+    }
+  ],
+  "score": 14,
+  "max_score": 20,
+  "percentage": 70,
+  "confidence": 0.9233333333333332,
+  "languages_detected": [
+    "TypeScript",
+    "JavaScript",
+    "SQL",
+    "Bash"
+  ],
+  "files_analyzed": [
+    ".env.example",
+    "src/main.ts",
+    "lib/prisma.ts",
+    "prisma.config.ts",
+    "docker-compose.yml",
+    "package.json",
+    "mysql/init.sql",
+    "scripts/test-connections.sh"
+  ],
+  "tool_calls_total": 10,
+  "duration_seconds": 100.116,
+  "reasoning": "Configuration management evaluation reveals mixed results. Strong points include comprehensive database credential externalization (5/5 points) with all DB credentials using process.env, and no hardcoded secrets in source code (4/4 points). The .env.example file exists and documents most variables (3/4 points, -1 for missing PORT documentation). Port is configurable via environment (2/2 points). However, critical gaps exist: no NODE_ENV or environment mode management found anywhere in codebase (0/3 points), and hardcoded port 3000 as fallback value violates no-hardcoded-urls requirement (0/2 points). Total score: 14/20 points (70%). Main recommendations: add PORT to .env.example, implement NODE_ENV checking for dev/prod/test modes, and consider removing hardcoded port fallback or make it configurable.",
+  "is_bonus": false
+}

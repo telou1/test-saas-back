@@ -1,0 +1,14 @@
+{
+  "pass_id": "analytics_bonus_evaluation",
+  "pass_name": "Analytics Endpoints Bonus Evaluation",
+  "pass_number": 4,
+  "started_at": "2026-03-09T17:19:00.587Z",
+  "rules_count": 3,
+  "conditional": false,
+  "dependencies": [],
+  "completed_at": "2026-03-09T17:21:00.395Z",
+  "duration_seconds": 119.808,
+  "score": 1.73,
+  "max_score": 52,
+  "percentage": 1.73
+}

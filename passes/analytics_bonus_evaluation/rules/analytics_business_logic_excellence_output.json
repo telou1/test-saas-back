@@ -1,0 +1,197 @@
+{
+  "rule_id": "analytics_business_logic_excellence",
+  "rule_name": "Analytics Business Logic Excellence",
+  "checkboxes": [
+    {
+      "id": "weighted_averages_correct",
+      "description": "Mathematical precision: Weighted averages correctly calculated vs simple averages",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No analytics endpoints exist in the codebase. The ToolsController only implements basic CRUD operations (create, getAll, getDetails, update) with no weighted average calculations for department costs or vendor summaries.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "@Controller('api/tools')\nexport class ToolsController {\n  @Post() async create(...)\n  @Get() async getAll(...)\n  @Get(':id') async getDetails(...)\n  @Put(':id') async update(...)\n}\n// No analytics routes found"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "percentages_total_100",
+      "description": "Mathematical precision: All percentages total exactly 100% (±0.1% tolerance)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No percentage calculations exist. The tools-by-category endpoint that should calculate category distribution percentages is not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "// No analytics endpoints found\n// Missing: GET /api/analytics/tools-by-category with percentage calculations"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "division_by_zero_handled",
+      "description": "Mathematical precision: Division-by-zero handled with COALESCE/CASE WHEN",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No division operations or COALESCE/CASE WHEN protections exist in analytics queries since no analytics endpoints are implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "// No analytics SQL queries found\n// No division-by-zero handling needed as analytics endpoints don't exist"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "proper_rounding",
+      "description": "Mathematical precision: Proper rounding applied (amounts 2 decimals, percentages 1 decimal)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "While basic tool endpoints apply 2-decimal rounding to monthly_cost (toFixed(2)), there are no analytics endpoints that would require percentage rounding to 1 decimal or aggregate cost rounding.",
+          "location": "src/tools/tools.service.ts:30-31",
+          "snippet": "return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n// Only basic rounding exists, no analytics-specific rounding for percentages or aggregations"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "empty_db_handled",
+      "description": "Edge cases: Empty database returns 200 with empty data array, no 500 error",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No analytics endpoints exist to test empty database handling. The basic getAll endpoint returns empty array correctly, but this is not analytics functionality.",
+          "location": "src/tools/tools.service.ts:54-59",
+          "snippet": "if (toolsPaginated.length === 0)\n  return {\n    data: [],\n    total: tools.length,\n    filtered: toolsPaginated.length,\n    filters_applied: filtersApplied,\n  };\n// This is for basic tool listing, not analytics endpoints"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "zero_users_handled",
+      "description": "Edge cases: Tools with zero users (active_users_count=0) handled properly",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No analytics endpoints exist to handle tools with zero users (active_users_count=0). The low-usage-tools endpoint that should identify such tools is not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "// Missing: GET /api/analytics/low-usage-tools endpoint\n// No handling for active_users_count=0 edge case in analytics"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "invalid_params_validated",
+      "description": "Edge cases: Invalid parameters validated with 400 Bad Request responses",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No analytics endpoints exist to validate parameters. Basic tool endpoints use NestJS decorators (ParseIntPipe) but there are no analytics-specific parameter validations for threshold values, date ranges, or aggregation parameters.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "@Get(':id')\nasync getDetails(@Param('id', ParseIntPipe) id: number)\n// Only basic ID validation exists, no analytics parameter validation"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "db_calculations",
+      "description": "Performance: Calculations performed in database (SQL aggregations) not in memory",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No analytics endpoints exist with database-level aggregations. The required SQL aggregations (SUM, AVG, COUNT, GROUP BY) for department-costs, expensive-tools, tools-by-category, low-usage-tools, and vendor-summary are not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "// No analytics SQL queries found\n// Missing: Database aggregations for all 5 analytics endpoints"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "efficient_joins",
+      "description": "Performance: Efficient JOINs without N+1 query problems",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "No analytics endpoints exist with JOIN operations. The required joins between tools, categories, and cost_tracking tables for analytics are not implemented.",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "// No analytics JOIN queries found\n// Missing: Efficient joins for category names, vendor aggregations, etc."
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": true
+    },
+    {
+      "id": "indexed_queries",
+      "description": "Performance: Queries use indexed columns and avoid SELECT *",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "While the database schema has proper indexes defined (idx_tools_category, idx_tools_cost_desc, idx_tools_department, etc.), no analytics queries exist to utilize them. The indexes are prepared but unused.",
+          "location": "mysql/init.sql:180-200",
+          "snippet": "CREATE INDEX idx_tools_category ON tools (category_id);\nCREATE INDEX idx_tools_department ON tools (owner_department);\nCREATE INDEX idx_tools_cost_desc ON tools (monthly_cost DESC);\n// Indexes exist but no analytics queries use them"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    }
+  ],
+  "score": 0,
+  "max_score": 20,
+  "percentage": 0,
+  "confidence": 0.974,
+  "languages_detected": [
+    "TypeScript",
+    "SQL"
+  ],
+  "files_analyzed": [
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/tools.module.ts",
+    "src/categories/categories.service.ts",
+    "src/usage-logs/usage-logs.service.ts",
+    "mysql/init.sql",
+    "prisma/schema.prisma"
+  ],
+  "tool_calls_total": 9,
+  "duration_seconds": 83.369,
+  "reasoning": "After comprehensive analysis of the codebase, the evaluation reveals a complete absence of analytics functionality. The application only implements basic CRUD operations for tools through the ToolsController with no analytics endpoints. None of the 5 required analytics endpoints (department-costs, expensive-tools, tools-by-category, low-usage-tools, vendor-summary) exist. Consequently, all advanced analytics requirements including weighted averages, percentage calculations, division-by-zero handling, proper rounding, edge case management, parameter validation, database-level aggregations, efficient joins, and indexed query optimization cannot be evaluated as the core functionality is missing. The database schema includes proper indexes and seed data prepared for analytics, but no code utilizes these resources. All 10 checkboxes are marked UNCHECKED with 0 points awarded, resulting in a total score of 0/20 points for this rule.",
+  "is_bonus": true
+}

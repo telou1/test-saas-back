@@ -1,0 +1,120 @@
+{
+  "rule_id": "analytics_implementation_detection",
+  "rule_name": "Analytics Implementation Detection",
+  "checkboxes": [
+    {
+      "id": "analytics_endpoint_exists",
+      "description": "At least one analytics endpoint implemented with business logic",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No dedicated analytics endpoints found in the codebase. The ToolsController only contains standard CRUD operations (create, getAll, getDetails, update) at /api/tools routes. No routes matching /api/analytics/* pattern exist. Searched entire codebase for analytics-specific endpoints like department-costs, expensive-tools, tools-by-category, low-usage-tools, or vendor-summary but found none.",
+          "location": "src/tools/tools.controller.ts:1-90",
+          "snippet": "@Controller('api/tools')\nexport class ToolsController {\n  @Post()\n  async create(@Body() data: CreateToolDto) {...}\n  @Get()\n  async getAll(@Query() queries: QueryTool) {...}\n  @Get(':id')\n  async getDetails(@Param('id', ParseIntPipe) id: number) {...}\n  @Put(':id')\n  async update(...) {...}\n}"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "Application module structure confirms no analytics module exists. Only ToolsModule, CategoriesModule, and UsageLogsModule are imported. No dedicated analytics controller, service, or module found in project structure.",
+          "location": "src/app.module.ts:6-9",
+          "snippet": "@Module({\n  imports: [ToolsModule, CategoriesModule, UsageLogsModule],\n  controllers: [AppController],\n  providers: [AppService],\n})"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": true
+    },
+    {
+      "id": "analytics_response_structure",
+      "description": "JSON response structure appropriate for analytics data",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.93,
+          "reasoning": "JSON response structure with nested usage_metrics object is appropriate for analytics data. The structure includes hierarchical organization with last_30_days context and specific metrics (total_session, avg_session_minutes), demonstrating proper analytics data formatting.",
+          "location": "src/tools/tools.service.ts:75-85",
+          "snippet": "async getDetailsById(id: number) {\n  const tool = await this.repository.getById(id);\n  if (!tool)\n    throw new NotFoundException({...});\n  const total = await this.usageLogs.totalSession(id);\n  const avg_session_minutes = await this.usageLogs.averageUsage(id);\n  return {\n    ...tool, monthly_cost: Number(tool.monthly_cost.toDecimalPlaces(2)), \n    usage_metrics: {\n      last_30_days: { total_session: total, avg_session_minutes },\n    },\n  };\n}"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Paginated response structure includes analytics-appropriate metadata (total count, filtered count, applied filters) alongside data array. Shows understanding of structured JSON responses suitable for analytics with aggregated information.",
+          "location": "src/tools/tools.service.ts:36-68",
+          "snippet": "return {\n  data: toolsPage,\n  total: tools.length,\n  filtered: toolsPaginated.length,\n  filters_applied: filtersApplied,\n};"
+        }
+      ],
+      "confidence_aggregate": 0.91,
+      "is_bonus": true
+    },
+    {
+      "id": "calculation_logic_attempted",
+      "description": "Calculation/aggregation logic attempted in codebase",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.48,
+          "reasoning": "While calculation logic exists for individual tool usage metrics (count and average), the requirement expects broader analytics aggregation logic in the context of analytics endpoints. The existing calculations are limited to single-tool metrics and do not demonstrate the multi-dimensional aggregations expected for analytics features like department-level costs, category distributions, vendor summaries, or cross-tool comparisons. The scope is too narrow to satisfy the analytics calculation requirement.",
+          "location": "src/usage-logs/model/repositoty.usage.logs.ts:18-48",
+          "snippet": "async countSessions(toolId: number) {\n  const date = await this.getSessionDate(toolId);\n  return await prisma.usage_logs.count({...});\n}\n\nasync averageUsageMinutes(toolId: number) {\n  const date = await this.getSessionDate(toolId);\n  return await prisma.usage_logs.aggregate({\n    _avg: { usage_minutes: true },\n    ...\n  });\n}"
+        }
+      ],
+      "confidence_aggregate": 0.48,
+      "is_bonus": true
+    },
+    {
+      "id": "usage_metrics_calculation",
+      "description": "Usage metrics calculated from session data (total_sessions, avg_duration) and integrated in GET /api/tools/:id",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Total sessions calculation correctly implemented using Prisma count aggregation. Filters usage_logs by tool_id and session_date range for last 30 days using proper date range logic (first to 30th of month based on session data).",
+          "location": "src/usage-logs/model/repositoty.usage.logs.ts:18-33",
+          "snippet": "async countSessions(toolId: number) {\n  const date = await this.getSessionDate(toolId);\n  return await prisma.usage_logs.count({\n    where: {\n      tools: { id: toolId },\n      session_date: {\n        gte: new Date(new Date().setFullYear(date.getFullYear(), date.getMonth(), 1)),\n        lte: new Date(new Date().setFullYear(date.getFullYear(), date.getMonth(), 30)),\n      },\n    },\n  });\n}"
+        },
+        {
+          "confidence": 0.94,
+          "reasoning": "Average duration calculation properly implemented using Prisma aggregate function with _avg operator on usage_minutes field. Correctly applies same date range filtering as session count for consistency.",
+          "location": "src/usage-logs/model/repositoty.usage.logs.ts:35-48",
+          "snippet": "async averageUsageMinutes(toolId: number) {\n  const date = await this.getSessionDate(toolId);\n  return await prisma.usage_logs.aggregate({\n    _avg: { usage_minutes: true },\n    where: {\n      tool_id: toolId,\n      session_date: {\n        gte: new Date(new Date().setFullYear(date.getFullYear(), date.getMonth(), 1)),\n        lte: new Date(new Date().setFullYear(date.getFullYear(), date.getMonth(), 30)),\n      },\n    },\n  });\n}"
+        },
+        {
+          "confidence": 0.96,
+          "reasoning": "Usage metrics successfully integrated into GET /api/tools/:id endpoint. Both total_session and avg_session_minutes are calculated from session data and returned in structured usage_metrics.last_30_days object, meeting the requirement for usage metrics calculation and integration.",
+          "location": "src/tools/tools.service.ts:75-85",
+          "snippet": "async getDetailsById(id: number) {\n  const tool = await this.repository.getById(id);\n  if (!tool) throw new NotFoundException({...});\n  const total = await this.usageLogs.totalSession(id);\n  const avg_session_minutes = await this.usageLogs.averageUsage(id);\n  return {\n    ...tool,\n    monthly_cost: Number(tool.monthly_cost.toDecimalPlaces(2)),\n    usage_metrics: {\n      last_30_days: { total_session: total, avg_session_minutes },\n    },\n  };\n}"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    }
+  ],
+  "score": 3,
+  "max_score": 7,
+  "percentage": 42.857142857142854,
+  "confidence": 0.8200000000000001,
+  "languages_detected": [
+    "TypeScript",
+    "JavaScript",
+    "SQL"
+  ],
+  "files_analyzed": [
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/usage-logs/usage-logs.service.ts",
+    "src/usage-logs/model/repositoty.usage.logs.ts",
+    "src/app.module.ts",
+    "prisma/schema.prisma",
+    "mysql/init.sql"
+  ],
+  "tool_calls_total": 8,
+  "duration_seconds": 104.754,
+  "reasoning": "The codebase demonstrates partial analytics implementation with strong usage metrics calculation but lacks dedicated analytics endpoints. The usage_metrics_calculation checkbox receives full points (2/2) as total_sessions and avg_session_minutes are correctly calculated from session data using Prisma aggregations and integrated into GET /api/tools/:id. The analytics_response_structure checkbox is checked (1/1) due to proper JSON structuring with nested objects and metadata. However, analytics_endpoint_exists is unchecked (0/3) because no dedicated /api/analytics/* routes exist - only standard CRUD operations at /api/tools. The calculation_logic_attempted checkbox is unchecked (0/1) as the existing calculations are limited to single-tool metrics rather than the broader multi-dimensional analytics aggregations expected (department costs, category distributions, vendor summaries). Total score: 3/7 points.",
+  "is_bonus": true
+}

@@ -1,0 +1,166 @@
+{
+  "rule_id": "crud_error_handling",
+  "rule_name": "Error Handling - Cross-Cutting Concern",
+  "checkboxes": [
+    {
+      "id": "validation_errors_400",
+      "description": "400 Bad Request returned for validation errors with detailed field-level messages",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "ValidationPipe configured globally in main.ts with transform:true. NestJS automatically returns 400 Bad Request for validation errors with detailed field-level messages from class-validator decorators.",
+          "location": "src/main.ts:8",
+          "snippet": "app.useGlobalPipes(new ValidationPipe({transform: true}));"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "CreateToolDto uses comprehensive class-validator decorators (@IsString, @Length, @IsNumber, @Min, @IsEnum, @IsNotEmpty) which provide field-level validation messages automatically converted to 400 responses by ValidationPipe.",
+          "location": "src/tools/model/dto/create.tool.dto.ts:12-40",
+          "snippet": "@IsString()\n@Length(2, 100)\n@IsNotEmpty()\nname: string;\n\n@IsNumber({ maxDecimalPlaces: 2 })\n@IsNotEmpty()\n@Min(0)\nmonthly_cost: number;"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "UpdateToolDto also implements validation decorators ensuring PUT endpoint validates input and returns 400 with field details on validation failure.",
+          "location": "src/tools/model/dto/update.tool.dto.ts:14-46",
+          "snippet": "@IsString()\n@Length(2, 100)\n@IsOptional()\nname?: string;\n\n@IsNumber({ maxDecimalPlaces: 2 })\n@IsNotEmpty()\n@Min(0)\nmonthly_cost: number;"
+        }
+      ],
+      "confidence_aggregate": 0.9,
+      "is_bonus": false
+    },
+    {
+      "id": "not_found_errors_404",
+      "description": "404 Not Found returned consistently for missing resources (GET/:id, PUT/:id)",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "GET/:id endpoint explicitly throws NotFoundException when tool not found. NestJS automatically converts this to 404 HTTP status with structured error response.",
+          "location": "src/tools/tools.service.ts:73-78",
+          "snippet": "async getDetailsById(id: number) {\n  const tool = await this.repository.getById(id);\n  if (!tool)\n    throw new NotFoundException({\n      error: 'Tool not found',\n      message: `Tool with ID ${id} does not exist`,\n    });"
+        },
+        {
+          "confidence": 0.85,
+          "reasoning": "PUT/:id endpoint calls repository.update which uses Prisma's update method. However, no explicit 404 handling is visible in the update method - Prisma will throw PrismaClientKnownRequestError which NestJS converts to 404, but this is implicit rather than explicit.",
+          "location": "src/tools/tools.service.ts:88-91",
+          "snippet": "async update(id: number, data: UpdateToolDto) {\n  const result = await this.repository.update(id, data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+        }
+      ],
+      "confidence_aggregate": 0.9,
+      "is_bonus": false
+    },
+    {
+      "id": "server_errors_500",
+      "description": "500 Internal Server Error handling implemented with generic message (no sensitive data leak)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.88,
+          "reasoning": "No explicit 500 error handling found. NestJS provides default exception filter that catches unhandled errors and returns 500, but there's no evidence of custom error handling to ensure generic messages without sensitive data leaks. The default NestJS behavior may expose stack traces in development mode.",
+          "location": "src/main.ts:1-19",
+          "snippet": "async function bootstrap() {\n  const app = await NestFactory.create(AppModule);\n  app.useGlobalPipes(new ValidationPipe({transform: true}));\n  // No custom exception filter registered\n}"
+        }
+      ],
+      "confidence_aggregate": 0.88,
+      "is_bonus": false
+    },
+    {
+      "id": "error_structure_consistent",
+      "description": "Error response structure consistent across all endpoints (standardized format with status, message, errors)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.85,
+          "reasoning": "Error structure is inconsistent. NotFoundException uses custom object with 'error' and 'message' fields, but ValidationPipe errors use NestJS default structure. No custom exception filter to standardize error responses across all endpoints.",
+          "location": "src/tools/tools.service.ts:23-27",
+          "snippet": "throw new NotFoundException({\n  error: 'Categorie not found',\n  message: `Categorie with ID ${data.category_id} does not exist`,\n});"
+        },
+        {
+          "confidence": 0.82,
+          "reasoning": "No global exception filter found to enforce consistent error structure. Different error types (validation, not found, server errors) will have different response formats based on NestJS defaults.",
+          "location": "src/main.ts:1-19",
+          "snippet": "// No custom exception filter to standardize error responses"
+        }
+      ],
+      "confidence_aggregate": 0.84,
+      "is_bonus": false
+    },
+    {
+      "id": "constraint_violations_handled",
+      "description": "Database constraint violations caught and translated to user-friendly 400 responses",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.9,
+          "reasoning": "No database constraint violation handling found. Prisma operations in repository (create, update) have no try-catch blocks to catch and translate Prisma errors (like unique constraint violations, foreign key violations) into user-friendly 400 responses.",
+          "location": "src/tools/model/repository.tool.ts:84-91",
+          "snippet": "async create(data: CreateToolDto) {\n  return prisma.tools.create({\n    data,\n  });\n}\n\nasync update(id: number, data: UpdateToolDto) {\n  return prisma.tools.update({\n    where: { id },\n    data,\n  });\n}"
+        },
+        {
+          "confidence": 0.87,
+          "reasoning": "Database schema has constraints (unique indexes, foreign keys, check constraints) but no application-level handling to translate these into 400 Bad Request responses. Prisma errors would bubble up as 500 errors instead of user-friendly 400 responses.",
+          "location": "prisma/schema.prisma:70-90",
+          "snippet": "model tools {\n  id                 Int                    @id @default(autoincrement())\n  name               String                 @db.VarChar(100)\n  category_id        Int\n  categories         categories             @relation(fields: [category_id], references: [id])\n  // Foreign key constraint exists but no error handling in code\n}"
+        }
+      ],
+      "confidence_aggregate": 0.89,
+      "is_bonus": false
+    },
+    {
+      "id": "swagger_endpoints_complete",
+      "description": "API documentation complete with all CRUD endpoints documented (Swagger/OpenAPI or equivalent)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.93,
+          "reasoning": "Swagger is configured in main.ts but no API documentation decorators (@ApiTags, @ApiOperation, @ApiResponse) found in controller. The endpoints will appear in Swagger but without proper documentation of request/response schemas, status codes, or descriptions.",
+          "location": "src/main.ts:9-16",
+          "snippet": "const config = new DocumentBuilder()\n  .setTitle('Internal tools management')\n  .setDescription('The internal tools management API description')\n  .setVersion('1.0')\n  .addTag('internal_tools_management')\n  .build();\nconst documentFactory = () => SwaggerModule.createDocument(app, config);\nSwaggerModule.setup('api/docs', app, documentFactory);"
+        },
+        {
+          "confidence": 0.91,
+          "reasoning": "Controller has no Swagger decorators. While NestJS Swagger plugin can auto-generate some documentation from DTOs, explicit documentation of error responses (400, 404, 500) and endpoint descriptions is missing.",
+          "location": "src/tools/tools.controller.ts:1-80",
+          "snippet": "@Controller('api/tools')\nexport class ToolsController {\n  @Post()\n  async create(@Body() data: CreateToolDto) {\n  // No @ApiOperation, @ApiResponse decorators\n  }\n  @Get(':id')\n  async getDetails(@Param('id', ParseIntPipe) id: number) {\n  // No documentation decorators\n  }\n}"
+        }
+      ],
+      "confidence_aggregate": 0.92,
+      "is_bonus": false
+    }
+  ],
+  "score": 6,
+  "max_score": 14,
+  "percentage": 42.857142857142854,
+  "confidence": 0.8883333333333333,
+  "languages_detected": [
+    "TypeScript",
+    "JavaScript"
+  ],
+  "files_analyzed": [
+    "src/main.ts",
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/model/dto/create.tool.dto.ts",
+    "src/tools/model/dto/update.tool.dto.ts",
+    "src/tools/model/repository.tool.ts",
+    "prisma/schema.prisma",
+    "package.json"
+  ],
+  "tool_calls_total": 8,
+  "duration_seconds": 93.975,
+  "reasoning": "This NestJS application implements basic error handling through framework defaults but lacks comprehensive custom error handling. Validation errors (400) are properly handled via ValidationPipe with class-validator decorators providing field-level messages. Not found errors (404) are handled for GET/:id but implicitly for PUT/:id through Prisma exceptions. However, the application lacks: (1) explicit 500 error handling with sanitized messages, (2) consistent error response structure across all error types, (3) database constraint violation handling to translate Prisma errors into user-friendly 400 responses, and (4) complete Swagger documentation with error response schemas. The implementation relies heavily on NestJS defaults without custom exception filters to ensure production-ready error handling standards.",
+  "is_bonus": false
+}

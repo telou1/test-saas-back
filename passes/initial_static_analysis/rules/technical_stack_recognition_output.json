@@ -1,0 +1,167 @@
+{
+  "rule_id": "technical_stack_recognition",
+  "rule_name": "Technical Stack Recognition",
+  "checkboxes": [
+    {
+      "id": "dependency_file_valid",
+      "description": "Dependency file present and valid (package.json/requirements.txt/pom.xml parsable)",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 1,
+          "reasoning": "package.json file is present, valid JSON, and properly structured with dependencies, devDependencies, scripts, and jest configuration sections",
+          "location": "package.json:1-68",
+          "snippet": "{\n  \"name\": \"tools_management\",\n  \"version\": \"0.0.1\",\n  \"dependencies\": {...},\n  \"devDependencies\": {...}\n}"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "File is parsable and contains all required Node.js package.json fields including name, version, scripts, and type module declaration",
+          "location": "package.json:68",
+          "snippet": "\"type\": \"module\""
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": false
+    },
+    {
+      "id": "framework_identified",
+      "description": "Main framework identified with version documented",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 1,
+          "reasoning": "NestJS framework clearly identified with version ^11.0.1 in package.json dependencies",
+          "location": "package.json:21-23",
+          "snippet": "\"@nestjs/common\": \"^11.0.1\",\n\"@nestjs/core\": \"^11.0.1\",\n\"@nestjs/platform-express\": \"^11.0.1\""
+        },
+        {
+          "confidence": 0.98,
+          "reasoning": "NestJS framework actively used in main application bootstrap with NestFactory.create() pattern",
+          "location": "src/main.ts:1-7",
+          "snippet": "import { NestFactory } from '@nestjs/core';\nimport { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';\nimport { AppModule } from './app.module.js';\n\nasync function bootstrap() {\n  const app = await NestFactory.create(AppModule);"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "NestJS CLI version 11.0.0 documented in devDependencies confirming framework version",
+          "location": "package.json:31",
+          "snippet": "\"@nestjs/cli\": \"^11.0.0\""
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": false
+    },
+    {
+      "id": "database_configured",
+      "description": "Database library/ORM correctly configured and detected",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 1,
+          "reasoning": "Prisma ORM version 7.4.2 configured with MariaDB adapter in package.json dependencies",
+          "location": "package.json:25-26",
+          "snippet": "\"@prisma/adapter-mariadb\": \"^7.4.2\",\n\"@prisma/client\": \"^7.4.2\""
+        },
+        {
+          "confidence": 0.98,
+          "reasoning": "Prisma client instantiated with MariaDB adapter configuration in lib/prisma.ts",
+          "location": "lib/prisma.ts:5-12",
+          "snippet": "const adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});\nconst prisma = new PrismaClient({ adapter });"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "Complete Prisma schema.prisma file with MySQL datasource and multiple models configured",
+          "location": "prisma/schema.prisma:1-8",
+          "snippet": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"mysql\"\n}"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": false
+    },
+    {
+      "id": "validation_library",
+      "description": "Validation library present (Joi/Yup/class-validator/etc.)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 1,
+          "reasoning": "class-validator version 0.14.4 present in package.json dependencies",
+          "location": "package.json:27",
+          "snippet": "\"class-validator\": \"^0.14.4\""
+        },
+        {
+          "confidence": 0.98,
+          "reasoning": "class-validator decorators extensively used in CreateToolDto with IsString, IsNumber, IsEnum, IsUrl, Length, Min validators",
+          "location": "src/tools/model/dto/create.tool.dto.ts:1-9",
+          "snippet": "import {\n  IsEnum,\n  IsNotEmpty,\n  IsNumber,\n  IsOptional,\n  IsString,\n  IsUrl,\n  Length,\n  Min,\n} from 'class-validator';"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "ValidationPipe globally configured in main.ts bootstrap with transform option enabled",
+          "location": "src/main.ts:8",
+          "snippet": "app.useGlobalPipes(new ValidationPipe({transform: true}));"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": false
+    },
+    {
+      "id": "modern_dependencies",
+      "description": "Stack uses modern and maintained dependencies (no deprecated packages >2 years)",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "NestJS v11 (released 2024), Prisma v7 (2024), TypeScript v5.7 (2024), Jest v30 (2024) - all latest major versions",
+          "location": "package.json:21-26",
+          "snippet": "\"@nestjs/common\": \"^11.0.1\",\n\"@nestjs/core\": \"^11.0.1\",\n\"@prisma/client\": \"^7.4.2\",\n\"class-validator\": \"^0.14.4\""
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "Modern tooling: ESLint v9.18, Prettier v3.4, typescript-eslint v8.20 - all actively maintained 2024 releases",
+          "location": "package.json:39-45",
+          "snippet": "\"eslint\": \"^9.18.0\",\n\"prettier\": \"^3.4.2\",\n\"typescript\": \"^5.7.3\",\n\"typescript-eslint\": \"^8.20.0\""
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "No deprecated packages detected - all dependencies are current versions with active maintenance (class-validator 0.14.4 from 2024, rxjs 7.8.1 maintained)",
+          "location": "package.json:27-30",
+          "snippet": "\"class-validator\": \"^0.14.4\",\n\"dotenv\": \"^17.3.1\",\n\"reflect-metadata\": \"^0.2.2\",\n\"rxjs\": \"^7.8.1\""
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": false
+    }
+  ],
+  "score": 13,
+  "max_score": 13,
+  "percentage": 100,
+  "confidence": 0.974,
+  "languages_detected": [
+    "TypeScript",
+    "JavaScript"
+  ],
+  "files_analyzed": [
+    "package.json",
+    "src/main.ts",
+    "tsconfig.json",
+    "lib/prisma.ts",
+    "prisma/schema.prisma",
+    "src/tools/model/dto/create.tool.dto.ts",
+    "src/tools/model/dto/filters.dto.ts",
+    "src/tools/model/dto/query.tool.ts"
+  ],
+  "tool_calls_total": 12,
+  "duration_seconds": 79.194,
+  "reasoning": "The project demonstrates a complete and modern technical stack. Package.json is valid and well-structured with all necessary configurations. NestJS v11 is clearly identified as the main framework with proper implementation in main.ts. Prisma ORM v7.4.2 is configured with MariaDB adapter and a comprehensive schema file. class-validator v0.14.4 is present and actively used throughout DTOs with proper decorator implementation and global ValidationPipe configuration. All dependencies are modern versions from 2024-2025 releases with no deprecated packages detected. The stack uses latest major versions: NestJS 11, Prisma 7, TypeScript 5.7, Jest 30, ESLint 9, demonstrating commitment to modern tooling and best practices.",
+  "is_bonus": false
+}

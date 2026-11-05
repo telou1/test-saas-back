@@ -1,0 +1,133 @@
+{
+  "rule_id": "docker_compatibility",
+  "rule_name": "Docker Compatibility",
+  "checkboxes": [
+    {
+      "id": "dockerfile_present",
+      "description": "Dockerfile present and follows best practices (multi-stage if applicable, optimized instructions)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No Dockerfile found in the repository. The list_files search for '**/Dockerfile*' returned empty results, and no Dockerfile content appeared in semantic searches. The project only provides docker-compose.yml for database infrastructure, not for containerizing the application itself.",
+          "location": "Repository root (searched with pattern **/Dockerfile*)",
+          "snippet": "list_files result: [] - No Dockerfile, Dockerfile.dev, or Dockerfile.prod found"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": false
+    },
+    {
+      "id": "docker_compose_complete",
+      "description": "docker-compose.yml present and complete (services defined, ports mapped, volumes configured)",
+      "status": "CHECKED",
+      "points_awarded": 3,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "docker-compose.yml is present and defines complete MySQL service with all required configurations: services defined (mysql, phpmyadmin), ports mapped using environment variables, volumes configured for data persistence and initialization scripts, networks defined, and healthchecks implemented.",
+          "location": "docker-compose.yml:1-60",
+          "snippet": "services:\n  mysql:\n    image: mysql:8.0\n    container_name: internal-tools-mysql\n    ports:\n      - \"${MYSQL_PORT}:3306\"\n    volumes:\n      - ./mysql/init.sql:/docker-entrypoint-initdb.d/01-init.sql\n      - mysql_data:/var/lib/mysql\n    networks:\n      - internal-tools-net\n    healthcheck:\n      test: [\"CMD\", \"mysqladmin\", \"ping\"...]"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "Additional service (phpMyAdmin) properly configured with depends_on condition, environment variables, and proper service dependencies. Uses profiles for selective service startup.",
+          "location": "docker-compose.yml:33-50",
+          "snippet": "phpmyadmin:\n    image: phpmyadmin:5.2\n    environment:\n      PMA_HOST: mysql\n    ports:\n      - \"${PHPMYADMIN_PORT}:80\"\n    depends_on:\n      mysql:\n        condition: service_healthy\n    profiles:\n      - mysql\n      - all"
+        }
+      ],
+      "confidence_aggregate": 0.91,
+      "is_bonus": false
+    },
+    {
+      "id": "docker_ports_configurable",
+      "description": "Ports configured via environment variables in docker-compose (not hardcoded)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "All ports in docker-compose.yml are configured via environment variables, not hardcoded. MySQL port uses ${MYSQL_PORT} and phpMyAdmin uses ${PHPMYADMIN_PORT}. The .env.example file provides default values (MYSQL_PORT=3306, PHPMYADMIN_PORT=8080).",
+          "location": "docker-compose.yml:15,40",
+          "snippet": "ports:\n  - \"${MYSQL_PORT}:3306\"\n...\nports:\n  - \"${PHPMYADMIN_PORT}:80\""
+        },
+        {
+          "confidence": 0.93,
+          "reasoning": "Environment variable defaults are properly documented in .env.example with sensible default values for development.",
+          "location": ".env.example:7-12",
+          "snippet": "MYSQL_PORT=3306\nMYSQL_HOST=localhost\n...\nPHPMYADMIN_PORT=8080"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": true
+    },
+    {
+      "id": "dockerignore_present",
+      "description": ".dockerignore present to exclude node_modules/build artifacts",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "No .dockerignore file found in the repository. The list_files search for '**/.dockerignore' returned empty results. While a .gitignore exists with proper exclusions (node_modules, dist, build), there is no corresponding .dockerignore file to optimize Docker build context.",
+          "location": "Repository root (searched with pattern **/.dockerignore)",
+          "snippet": "list_files result: [] - No .dockerignore file found. Only .gitignore exists."
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": true
+    },
+    {
+      "id": "compatible_back_env",
+      "description": "Compatible with provided back_env.zip environment (MySQL/PostgreSQL as expected)",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.93,
+          "reasoning": "The application is configured to use MySQL/MariaDB which is compatible with the provided back_env.zip environment. The Prisma adapter uses MariaDB driver, and docker-compose.yml provides MySQL 8.0 service. Environment variables match expected MySQL configuration (MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE).",
+          "location": "lib/prisma.ts:2-11",
+          "snippet": "import { PrismaMariaDb } from '@prisma/adapter-mariadb';\n...\nconst adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "docker-compose.yml defines MySQL 8.0 service with all required environment variables that match the expected back_env configuration pattern.",
+          "location": "docker-compose.yml:6-14",
+          "snippet": "mysql:\n    image: mysql:8.0\n    environment:\n      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}\n      MYSQL_DATABASE: ${MYSQL_DATABASE}\n      MYSQL_USER: ${MYSQL_USER}\n      MYSQL_PASSWORD: ${MYSQL_PASSWORD}"
+        }
+      ],
+      "confidence_aggregate": 0.92,
+      "is_bonus": false
+    }
+  ],
+  "score": 6,
+  "max_score": 10,
+  "percentage": 60,
+  "confidence": 0.9339999999999999,
+  "languages_detected": [
+    "TypeScript",
+    "JavaScript",
+    "Bash",
+    "YAML"
+  ],
+  "files_analyzed": [
+    "docker-compose.yml",
+    ".env.example",
+    "README.md",
+    "lib/prisma.ts",
+    "scripts/start-mysql.sh",
+    "scripts/test-connections.sh",
+    ".gitignore",
+    "package.json"
+  ],
+  "tool_calls_total": 9,
+  "duration_seconds": 78.206,
+  "reasoning": "The project has partial Docker compatibility. It provides a complete docker-compose.yml for database infrastructure (MySQL + phpMyAdmin) with proper environment variable configuration for ports, volumes, networks, and healthchecks (3/3 points). All ports are configurable via environment variables rather than hardcoded (2/2 points). The application is compatible with MySQL/MariaDB as required by back_env.zip (1/1 point). However, critical elements are missing: no Dockerfile exists to containerize the application itself (0/3 points), and no .dockerignore file is present to optimize build context (0/1 point). Total score: 6/10 points. The docker-compose setup is professional for database services but incomplete for full application containerization.",
+  "is_bonus": false
+}

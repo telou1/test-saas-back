@@ -1,0 +1,14 @@
+{
+  "pass_id": "code_quality_architecture",
+  "pass_name": "Code Quality & Architecture Assessment",
+  "pass_number": 3,
+  "started_at": "2026-03-09T17:16:45.643Z",
+  "rules_count": 4,
+  "conditional": false,
+  "dependencies": [],
+  "completed_at": "2026-03-09T17:19:00.583Z",
+  "duration_seconds": 134.94,
+  "score": 62.07,
+  "max_score": 29,
+  "percentage": 62.07
+}

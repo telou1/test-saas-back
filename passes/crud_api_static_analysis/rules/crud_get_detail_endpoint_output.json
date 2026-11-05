@@ -1,0 +1,116 @@
+{
+  "rule_id": "crud_get_detail_endpoint",
+  "rule_name": "GET /api/tools/:id - Detail Endpoint Implementation",
+  "checkboxes": [
+    {
+      "id": "get_detail_endpoint_exists",
+      "description": "Endpoint GET /api/tools/:id exists with path parameter declaration",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 1,
+          "reasoning": "GET endpoint with path parameter ':id' is properly declared using NestJS @Get decorator, creating the route GET /api/tools/:id",
+          "location": "src/tools/tools.controller.ts:70-72",
+          "snippet": "@Get(':id')\n  async getDetails(@Param('id', ParseIntPipe) id: number) {\n    return this.toolService.getDetailsById(id);"
+        },
+        {
+          "confidence": 1,
+          "reasoning": "Controller is mounted at 'api/tools' base path, confirming the complete endpoint route is /api/tools/:id",
+          "location": "src/tools/tools.controller.ts:21",
+          "snippet": "@Controller('api/tools')"
+        }
+      ],
+      "confidence_aggregate": 1,
+      "is_bonus": false
+    },
+    {
+      "id": "id_parameter_validated",
+      "description": "ID parameter validated (integer type, existence in database)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "ParseIntPipe validates that the ID parameter is an integer type, automatically throwing BadRequestException if the value is not a valid number",
+          "location": "src/tools/tools.controller.ts:71",
+          "snippet": "@Param('id', ParseIntPipe) id: number"
+        },
+        {
+          "confidence": 1,
+          "reasoning": "Database existence validation is performed - if the tool with the given ID is not found in the database, a NotFoundException is thrown with descriptive error message",
+          "location": "src/tools/tools.service.ts:72-77",
+          "snippet": "const tool = await this.repository.getById(id);\n    if (!tool)\n      throw new NotFoundException({\n        error: 'Tool not found',\n        message: `Tool with ID ${id} does not exist`,\n      });"
+        }
+      ],
+      "confidence_aggregate": 0.98,
+      "is_bonus": false
+    },
+    {
+      "id": "not_found_handling",
+      "description": "404 error returned if tool not found in database",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 1,
+          "reasoning": "NotFoundException is explicitly thrown when tool is not found in database. NestJS framework automatically converts NotFoundException to HTTP 404 status code with proper error response",
+          "location": "src/tools/tools.service.ts:72-77",
+          "snippet": "const tool = await this.repository.getById(id);\n    if (!tool)\n      throw new NotFoundException({\n        error: 'Tool not found',\n        message: `Tool with ID ${id} does not exist`,\n      });"
+        },
+        {
+          "confidence": 1,
+          "reasoning": "NotFoundException is imported from @nestjs/common, which is the standard NestJS HTTP exception that returns 404 status code",
+          "location": "src/tools/tools.service.ts:1",
+          "snippet": "import { Injectable, Logger, NotFoundException } from '@nestjs/common';"
+        }
+      ],
+      "confidence_aggregate": 1,
+      "is_bonus": false
+    },
+    {
+      "id": "related_category_included",
+      "description": "Response includes related category data (join/eager loading detected)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "The Prisma query does NOT include the 'categories' relation using the include option. It only returns the tool object with the category_id foreign key field, but not the actual related category data (name, description, color_hex). To include related data, the query should use 'include: { categories: true }'",
+          "location": "src/tools/model/repository.tool.ts:83-87",
+          "snippet": "async getById(id: number) {\n    return prisma.tools.findUnique({\n      where: { id },\n    });\n  }"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "The Prisma schema defines the relationship between tools and categories models, but the repository implementation does not leverage this relationship to fetch related category data via eager loading",
+          "location": "prisma/schema.prisma:68",
+          "snippet": "categories         categories             @relation(fields: [category_id], references: [id], onUpdate: NoAction, map: \"tools_ibfk_1\")"
+        }
+      ],
+      "confidence_aggregate": 0.93,
+      "is_bonus": false
+    }
+  ],
+  "score": 6,
+  "max_score": 8,
+  "percentage": 75,
+  "confidence": 0.9775,
+  "languages_detected": [
+    "TypeScript",
+    "Prisma Schema"
+  ],
+  "files_analyzed": [
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/model/repository.tool.ts",
+    "prisma/schema.prisma"
+  ],
+  "tool_calls_total": 6,
+  "duration_seconds": 57.826,
+  "reasoning": "The GET /api/tools/:id endpoint is properly implemented with path parameter declaration, integer validation via ParseIntPipe, and 404 error handling via NotFoundException. However, the endpoint fails to include related category data in the response. The repository's getById method uses Prisma's findUnique without the 'include' option to fetch the related categories relation, meaning the response only contains the category_id foreign key rather than the complete category object with name, description, and color_hex fields. This is a critical omission for a detail endpoint that should provide comprehensive resource information including related entities.",
+  "is_bonus": false
+}

@@ -1,0 +1,169 @@
+{
+  "rule_id": "crud_post_creation_endpoint",
+  "rule_name": "POST /api/tools - Creation Endpoint Implementation",
+  "checkboxes": [
+    {
+      "id": "post_endpoint_exists",
+      "description": "Endpoint POST /api/tools exists with proper HTTP method and request body parsing",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "POST endpoint exists at /api/tools with proper HTTP method decorator and request body parsing via @Body() decorator with CreateToolDto",
+          "location": "src/tools/tools.controller.ts:28",
+          "snippet": "@Post()\n  async create(@Body() data: CreateToolDto) {\n    return this.toolService.createTool(data);"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "Global validation pipe enabled for automatic DTO validation on all endpoints",
+          "location": "src/main.ts:9",
+          "snippet": "app.useGlobalPipes(new ValidationPipe({transform: true}));"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "all_fields_validated",
+      "description": "All required fields validated with correct types and constraints (name, monthly_cost, vendor, website_url, category_id)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 3,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Only 5 required fields are validated in CreateToolDto (name, vendor, website_url, owner_department, monthly_cost, category_id). The 'status' field is completely missing from the DTO, failing the requirement of validating all required fields including status enum.",
+          "location": "src/tools/model/dto/create.tool.dto.ts:13-44",
+          "snippet": "export class CreateToolDto {\n  @IsString()\n  @Length(2, 100)\n  @IsNotEmpty()\n  name: string;\n\n  @IsString()\n  @Length(1, 100)\n  @IsNotEmpty()\n  vendor: string;\n\n  @IsUrl()\n  @IsOptional()\n  website_url?: string;\n\n  @IsEnum(tools_owner_department)\n  @IsNotEmpty()\n  owner_department: tools_owner_department;\n\n  @IsNumber({ maxDecimalPlaces: 2 })\n  @IsNotEmpty()\n  @Min(0)\n  monthly_cost: number;\n\n  @IsNumber()\n  @IsNotEmpty()\n  @Min(1)\n  category_id: number;"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": false
+    },
+    {
+      "id": "department_enum_validated",
+      "description": "owner_department enum strictly validated with all 7 authorized values (Engineering|Sales|Marketing|HR|Finance|Operations|Design)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "owner_department field uses @IsEnum decorator with tools_owner_department enum for strict validation at application level",
+          "location": "src/tools/model/dto/create.tool.dto.ts:29-31",
+          "snippet": "@IsEnum(tools_owner_department)\n  @IsNotEmpty()\n  owner_department: tools_owner_department;"
+        },
+        {
+          "confidence": 0.98,
+          "reasoning": "Enum definition contains all 7 required values: Engineering, Sales, Marketing, HR, Finance, Operations, Design",
+          "location": "prisma/schema.prisma:145-152",
+          "snippet": "enum tools_owner_department {\n  Engineering\n  Sales\n  Marketing\n  HR\n  Finance\n  Operations\n  Design\n}"
+        }
+      ],
+      "confidence_aggregate": 0.97,
+      "is_bonus": false
+    },
+    {
+      "id": "status_enum_validated",
+      "description": "status enum validated (active|deprecated|trial)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "The status field is completely absent from CreateToolDto. While the database schema defines tools_status enum (active|deprecated|trial) with a default value, there is no application-level validation for this field during creation. The DTO does not include or validate the status field.",
+          "location": "src/tools/model/dto/create.tool.dto.ts:13-44",
+          "snippet": "export class CreateToolDto {\n  @IsString()\n  @Length(2, 100)\n  @IsNotEmpty()\n  name: string;\n  // ... other fields ...\n  // NO status field present in DTO"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": false
+    },
+    {
+      "id": "name_uniqueness_checked",
+      "description": "Uniqueness constraint on 'name' verified in database before insertion",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "The 'name' field in the tools model has no @unique constraint in the Prisma schema. Database allows duplicate tool names without any uniqueness enforcement.",
+          "location": "prisma/schema.prisma:48",
+          "snippet": "name               String                 @db.VarChar(100)"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "Service validates category_id foreign key but performs no uniqueness check on the name field before insertion. No query to check for existing tools with the same name.",
+          "location": "src/tools/tools.service.ts:20-29",
+          "snippet": "async createTool(data: CreateToolDto) {\n    const categorie = await this.categoriesService.getById(data.category_id);\n    if (!categorie)\n      throw new NotFoundException({\n        error: 'Categorie not found',\n        message: `Categorie with ID ${data.category_id} does not exist`,\n      });\n      this.logger.error(\"Categorie not found\")\n    const result = await this.repository.create(data);\n    return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "foreign_key_validated",
+      "description": "Foreign key validation for 'category_id' verifies existence in categories table",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Foreign key validation for category_id verifies existence in categories table before insertion, throwing NotFoundException with proper error message if category does not exist",
+          "location": "src/tools/tools.service.ts:21-27",
+          "snippet": "const categorie = await this.categoriesService.getById(data.category_id);\n    if (!categorie)\n      throw new NotFoundException({\n        error: 'Categorie not found',\n        message: `Categorie with ID ${data.category_id} does not exist`,\n      });"
+        }
+      ],
+      "confidence_aggregate": 0.95,
+      "is_bonus": false
+    },
+    {
+      "id": "created_response_proper",
+      "description": "Response returns 201 Created with new resource ID and complete object",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.7,
+          "reasoning": "No explicit @HttpCode(201) decorator on the POST endpoint. While NestJS POST methods return 201 by default, the requirement asks for proper explicit 201 response handling which is not explicitly coded in the controller.",
+          "location": "src/tools/tools.controller.ts:28-30",
+          "snippet": "@Post()\n  async create(@Body() data: CreateToolDto) {\n    return this.toolService.createTool(data);"
+        },
+        {
+          "confidence": 0.75,
+          "reasoning": "Service returns complete object with ID and formatted monthly_cost, but lacks explicit 201 status code declaration in controller",
+          "location": "src/tools/tools.service.ts:28-29",
+          "snippet": "const result = await this.repository.create(data);\n    return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}"
+        }
+      ],
+      "confidence_aggregate": 0.73,
+      "is_bonus": false
+    }
+  ],
+  "score": 4,
+  "max_score": 12,
+  "percentage": 33.33333333333333,
+  "confidence": 0.9185714285714285,
+  "languages_detected": [
+    "TypeScript",
+    "Prisma"
+  ],
+  "files_analyzed": [
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/model/dto/create.tool.dto.ts",
+    "src/tools/model/repository.tool.ts",
+    "prisma/schema.prisma",
+    "src/main.ts"
+  ],
+  "tool_calls_total": 8,
+  "duration_seconds": 83.1,
+  "reasoning": "The POST /api/tools endpoint exists and implements basic validation, but has critical gaps. The endpoint properly validates 5 fields (name, vendor, website_url, owner_department, monthly_cost, category_id) with appropriate constraints. The owner_department enum is correctly validated with all 7 required values. Foreign key validation for category_id is properly implemented. However, the implementation fails on three key requirements: (1) status field validation is completely missing from the DTO despite being required, (2) no uniqueness check is performed on the name field either at database or application level, and (3) no explicit 201 status code is declared on the endpoint. The response returns the created object but relies on NestJS defaults rather than explicit configuration. Total score: 4/12 points.",
+  "is_bonus": false
+}

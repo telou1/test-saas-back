@@ -1,0 +1,250 @@
+{
+  "rule_id": "junior_code_quality",
+  "rule_name": "Junior-Level Code Quality Standards",
+  "checkboxes": [
+    {
+      "id": "descriptive_variable_names",
+      "description": "Variables have descriptive and meaningful names (no abbreviations like 't', 'x')",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Variables use descriptive names like 'toolsPaginated', 'filtersApplied', 'avg_session_minutes' clearly indicating their purpose throughout the codebase",
+          "location": "src/tools/tools.service.ts:38-42",
+          "snippet": "const tools = await this.repository.getAll();\nconst toolsPaginated = await this.repository.paginatedTools(\n  filters,\n  pagination,\n  sortFilters,\n);"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "Variables like 'average', 'toolId', 'whereFilters' are descriptive and meaningful, avoiding abbreviations",
+          "location": "src/usage-logs/usage-logs.service.ts:12-15",
+          "snippet": "async averageUsage(toolId: number) {\n  const average = await this.repository.averageUsageMinutes(toolId);\n  if (!average._avg.usage_minutes) return 0;\n  return average._avg.usage_minutes;\n}"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "clear_function_names",
+      "description": "Functions have clear verb-based names explaining their purpose",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Function names follow clear verb-based conventions: createTool, getAllPaginated, getDetailsById, update - all explain their purpose",
+          "location": "src/tools/tools.service.ts:20-30",
+          "snippet": "async createTool(data: CreateToolDto) {\n  const categorie = await this.categoriesService.getById(data.category_id);\n  if (!categorie)\n    throw new NotFoundException({\n      error: 'Categorie not found',\n      message: `Categorie with ID ${data.category_id} does not exist`,\n    });"
+        },
+        {
+          "confidence": 0.93,
+          "reasoning": "Functions have clear verb-based names explaining their purpose: getById, averageUsage, totalSession, countSessions",
+          "location": "src/usage-logs/usage-logs.service.ts:8-20",
+          "snippet": "async getById(id: number) {\n  return this.repository.getById(id);\n}\n\nasync averageUsage(toolId: number) {\n  const average = await this.repository.averageUsageMinutes(toolId);\n  if (!average._avg.usage_minutes) return 0;\n  return average._avg.usage_minutes;\n}"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "functions_under_20_lines",
+      "description": "Majority of functions are under 20 lines",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Majority of functions are well under 20 lines: createTool (11 lines), getById (3 lines), averageUsage (5 lines), totalSession (3 lines), create (3 lines), getDetails (3 lines), update (3 lines)",
+          "location": "src/tools/tools.service.ts:20-30",
+          "snippet": "async createTool(data: CreateToolDto) {\n  const categorie = await this.categoriesService.getById(data.category_id);\n  if (!categorie)\n    throw new NotFoundException({\n      error: 'Categorie not found',\n      message: `Categorie with ID ${data.category_id} does not exist`,\n    });\n    this.logger.error(\"Categorie not found\")\n  const result = await this.repository.create(data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "Controller methods are very concise, all under 20 lines with most being 3-5 lines",
+          "location": "src/tools/tools.controller.ts:28-32",
+          "snippet": "@Post()\nasync create(@Body() data: CreateToolDto) {\n  return this.toolService.createTool(data);\n}"
+        }
+      ],
+      "confidence_aggregate": 0.94,
+      "is_bonus": false
+    },
+    {
+      "id": "no_function_exceeds_50_lines",
+      "description": "No function exceeds 50 lines (or properly decomposed if unavoidable)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "ESLint enforces max-lines-per-function rule set to 50 lines as an error, ensuring no function can exceed this limit in the codebase",
+          "location": "eslint.config.mjs:28-36",
+          "snippet": "rules: {\n  '@typescript-eslint/no-explicit-any': 'error',\n  '@typescript-eslint/no-floating-promises': 'warn',\n  '@typescript-eslint/no-unsafe-argument': 'warn',\n  \"prettier/prettier\": [\"error\", { endOfLine: \"auto\" }],\n  \"max-lines-per-function\": [\"error\", 50],\n  \"max-params\": [\"error\",3]\n}"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "Longest function found is getAll() at 42 lines, which is under the 50-line limit enforced by ESLint",
+          "location": "src/tools/tools.controller.ts:34-72",
+          "snippet": "@Get()\nasync getAll(@Query() queries: QueryTool) {\n  const pagination: PaginationFilters = {};\n  const filters: FiltersDto = {};\n  const sortField: Record<string, string> = {};"
+        }
+      ],
+      "confidence_aggregate": 0.97,
+      "is_bonus": false
+    },
+    {
+      "id": "meaningful_comments",
+      "description": "Comments explain complex logic without stating obvious code",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.85,
+          "reasoning": "No comments found in the main business logic files. Complex logic like filter building in getAll() (42 lines) and date calculations in usage logs could benefit from explanatory comments to clarify intent",
+          "location": "src/tools/tools.controller.ts:34-72",
+          "snippet": "@Get()\nasync getAll(@Query() queries: QueryTool) {\n  const pagination: PaginationFilters = {};\n  const filters: FiltersDto = {};\n  const sortField: Record<string, string> = {};\n  if (queries.page !== undefined) pagination.page = queries.page;"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Complex date calculation logic lacks comments explaining why it calculates from day 1 to day 30 of the month, making the business logic unclear",
+          "location": "src/usage-logs/model/repositoty.usage.logs.ts:24-32",
+          "snippet": "session_date: {\n  gte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 1),\n  ),\n  lte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 30),\n  ),\n}"
+        }
+      ],
+      "confidence_aggregate": 0.87,
+      "is_bonus": false
+    },
+    {
+      "id": "no_dead_code",
+      "description": "No commented-out dead code left in codebase",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "Searched through all source files and found no commented-out code blocks or dead code. All code is active and used in the application flow",
+          "location": "src/tools/tools.controller.ts:1-85",
+          "snippet": "import {\n  Body,\n  Controller,\n  Post,\n  Get,\n  Query,\n  Param,\n  Put,\n  ParseIntPipe,\n  Logger,\n} from '@nestjs/common';"
+        }
+      ],
+      "confidence_aggregate": 0.92,
+      "is_bonus": false
+    },
+    {
+      "id": "no_code_duplication",
+      "description": "No code duplication detected (similar logic is factorized)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "The cost formatting logic 'Number(result.monthly_cost.toFixed(2))' is duplicated 3 times across createTool, getAllPaginated, and update methods. This should be extracted into a helper function like formatMonthlyCost()",
+          "location": "src/tools/tools.service.ts:29",
+          "snippet": "return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Repetitive filter copying logic with 5 similar if statements that could be refactored into a more DRY approach using Object.entries or a loop",
+          "location": "src/tools/tools.service.ts:45-51",
+          "snippet": "if (filters.category) filtersApplied['category'] = filters['category'];\nif (filters.department)\n  filtersApplied['department'] = filters['department'];\nif (filters.max_cost) filtersApplied['max_cost'] = filters['max_cost'];\nif (filters.min_cost) filtersApplied['min_cost'] = filters['min_cost'];\nif (filters.status) filtersApplied['status'] = filters['status'];"
+        }
+      ],
+      "confidence_aggregate": 0.92,
+      "is_bonus": false
+    },
+    {
+      "id": "no_magic_values",
+      "description": "Magic numbers and strings are replaced by named constants",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Magic number '2' appears multiple times for decimal places in toFixed(2). Should be a named constant like DECIMAL_PLACES = 2 or CURRENCY_PRECISION = 2",
+          "location": "src/tools/tools.service.ts:29",
+          "snippet": "Number(result.monthly_cost.toFixed(2))"
+        },
+        {
+          "confidence": 0.93,
+          "reasoning": "Magic numbers 1 and 30 for day of month calculations. Should be constants like MONTH_START_DAY = 1, MONTH_END_DAY = 30 to clarify intent",
+          "location": "src/usage-logs/model/repositoty.usage.logs.ts:24-28",
+          "snippet": "session_date: {\n  gte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 1),\n  ),\n  lte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 30),\n  ),"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "Magic number 5 for connection limit. Should be a named constant or environment variable like MAX_DB_CONNECTIONS for better configurability",
+          "location": "lib/prisma.ts:9",
+          "snippet": "connectionLimit: 5,"
+        },
+        {
+          "confidence": 0.85,
+          "reasoning": "Magic number 3000 for default port. While using ?? operator is good practice, 3000 should be a named constant like DEFAULT_PORT = 3000",
+          "location": "src/main.ts:18",
+          "snippet": "await app.listen(process.env.PORT ?? 3000);"
+        }
+      ],
+      "confidence_aggregate": 0.91,
+      "is_bonus": false
+    },
+    {
+      "id": "structured_logging",
+      "description": "Structured logging implemented with appropriate levels (INFO/ERROR minimum)",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "Logger is properly initialized with class name for context using NestJS Logger in ToolsController, providing structured logging capability",
+          "location": "src/tools/tools.controller.ts:25",
+          "snippet": "private readonly logger = new Logger(ToolsController.name);"
+        },
+        {
+          "confidence": 0.92,
+          "reasoning": "Logger is initialized in ToolsService and uses ERROR level for error conditions, demonstrating appropriate log level usage",
+          "location": "src/tools/tools.service.ts:13",
+          "snippet": "private readonly logger = new Logger(ToolsService.name);"
+        },
+        {
+          "confidence": 0.88,
+          "reasoning": "Logger is used in repository layer with WARN level for debugging filter conditions, showing structured logging implementation across layers",
+          "location": "src/tools/model/repository.tool.ts:12",
+          "snippet": "private readonly logger = new Logger(RepositoryTool.name)"
+        }
+      ],
+      "confidence_aggregate": 0.92,
+      "is_bonus": true
+    }
+  ],
+  "score": 11,
+  "max_score": 17,
+  "percentage": 64.70588235294117,
+  "confidence": 0.9255555555555556,
+  "languages_detected": [
+    "TypeScript"
+  ],
+  "files_analyzed": [
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/categories/categories.service.ts",
+    "src/usage-logs/usage-logs.service.ts",
+    "src/tools/model/repository.tool.ts",
+    "src/usage-logs/model/repositoty.usage.logs.ts",
+    "src/tools/model/dto/create.tool.dto.ts",
+    "src/tools/model/dto/filters.dto.ts",
+    "src/tools/model/dto/sort.filters.ts",
+    "lib/prisma.ts",
+    "src/main.ts",
+    "eslint.config.mjs"
+  ],
+  "tool_calls_total": 11,
+  "duration_seconds": 134.916,
+  "reasoning": "This NestJS TypeScript project demonstrates good junior-level code quality in several areas: descriptive variable names, clear function naming conventions, appropriate function lengths (enforced by ESLint max 50 lines), no dead code, and structured logging with NestJS Logger. However, it falls short in three critical areas: (1) lack of meaningful comments for complex logic like date calculations and filter building, (2) code duplication in cost formatting logic appearing 3 times and repetitive filter copying, and (3) multiple magic values including decimal precision (2), date calculations (1, 30), connection limits (5), and default port (3000) that should be named constants. The codebase scores 11 out of 17 points, showing solid fundamentals but needing improvement in documentation, DRY principles, and constant extraction.",
+  "is_bonus": false
+}

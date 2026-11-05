@@ -1,0 +1,590 @@
+{
+  "pass_id": "code_quality_architecture",
+  "pass_name": "Code Quality & Architecture Assessment",
+  "score": 62.07,
+  "max_score": 29,
+  "percentage": 62.07,
+  "scoring_breakdown": {
+    "score": 62.07,
+    "score_standard": 62.07,
+    "score_bonus": null,
+    "score_agrege": null,
+    "obligatory": {
+      "points_obtained": 18,
+      "points_max": 29,
+      "count": 0
+    },
+    "bonus": null
+  },
+  "rules": [
+    {
+      "rule_id": "separation_of_concerns",
+      "rule_name": "Separation of Concerns & Layered Architecture",
+      "checkboxes": [
+        {
+          "id": "controllers_http_only",
+          "description": "Controllers handle only HTTP layer (req/res) without business logic",
+          "status": "UNCHECKED",
+          "points_awarded": 0,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.92,
+              "reasoning": "ToolsController.getAll() contains significant business logic including query parameter parsing, enum mapping, filter construction, and sort field building across 30+ lines. Controllers should only handle HTTP request/response extraction and delegate all logic to services.",
+              "location": "src/tools/tools.controller.ts:33-66",
+              "snippet": "const pagination: PaginationFilters = {};\nconst filters: FiltersDto = {};\nconst sortField: Record<string, string> = {};\nif (queries.page !== undefined) pagination.page = queries.page;\nif (queries.limit !== undefined) pagination.limit = queries.limit;\nif (queries.category) filters.category = queries.category;\nif (queries.department) \n  filters.department = tools_owner_department[queries.department as keyof typeof tools_owner_department];\nif (queries.status)\n  filters.status = tools_status[queries.status as keyof typeof tools_status];\nif (queries.min_cost !== undefined) filters.min_cost = Number(queries.min_cost);\nif (queries.max_cost !== undefined) filters.max_cost = Number(queries.max_cost);\nif (queries.cost) sortField['field'] = queries.cost;\nif (queries.date) sortField['field'] = queries.date;\nif (queries.name) sortField['field'] = queries.name;\nif (queries.asc) sortField['order'] = queries.asc;\nif (queries.desc) sortField['order'] = queries.desc;\nconst sortFilters: SortFilters = {\n  field: SortName[sortField['field'] as keyof typeof SortName],\n  order: SortOrder[sortField['order'] as keyof typeof SortOrder],\n};"
+            },
+            {
+              "confidence": 0.95,
+              "reasoning": "Other controller methods (create, getDetails, update) correctly delegate to service layer without business logic, demonstrating inconsistent implementation within the same controller class.",
+              "location": "src/tools/tools.controller.ts:28-30",
+              "snippet": "@Post()\nasync create(@Body() data: CreateToolDto) {\n  return this.toolService.createTool(data);\n}"
+            }
+          ],
+          "confidence_aggregate": 0.94,
+          "is_bonus": false
+        },
+        {
+          "id": "services_business_logic",
+          "description": "Services layer centralizes business logic and is HTTP-independent",
+          "status": "CHECKED",
+          "points_awarded": 2,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.93,
+              "reasoning": "ToolsService.createTool() implements proper business validation by checking category existence before creating tool and throwing NotFoundException with business-appropriate error messages, demonstrating service-layer business logic.",
+              "location": "src/tools/tools.service.ts:20-30",
+              "snippet": "async createTool(data: CreateToolDto) {\n  const categorie = await this.categoriesService.getById(data.category_id);\n  if (!categorie)\n    throw new NotFoundException({\n      error: 'Categorie not found',\n      message: `Categorie with ID ${data.category_id} does not exist`,\n    });\n  this.logger.error(\"Categorie not found\")\n  const result = await this.repository.create(data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+            },
+            {
+              "confidence": 0.9,
+              "reasoning": "ToolsService.getDetailsById() orchestrates multiple data sources (repository and usageLogs services) and applies business transformations (monthly_cost formatting, usage_metrics aggregation), showing proper service-layer coordination.",
+              "location": "src/tools/tools.service.ts:68-80",
+              "snippet": "async getDetailsById(id: number) {\n  const tool = await this.repository.getById(id);\n  if (!tool)\n    throw new NotFoundException({\n      error: 'Tool not found',\n      message: `Tool with ID ${id} does not exist`,\n    });\n  const total = await this.usageLogs.totalSession(id);\n  const avg_session_minutes = await this.usageLogs.averageUsage(id);\n  return {\n    ...tool, monthly_cost: Number(tool.monthly_cost.toDecimalPlaces(2)), \n    usage_metrics: { last_30_days: { total_session: total, avg_session_minutes } },\n  };\n}"
+            },
+            {
+              "confidence": 0.88,
+              "reasoning": "Services are HTTP-independent with no imports of HTTP-specific decorators from @nestjs/common (only Injectable, Logger, NotFoundException). Services work with DTOs and domain objects, not Request/Response objects, confirming proper layer independence.",
+              "location": "src/tools/tools.service.ts:1-9",
+              "snippet": "import { Injectable, Logger, NotFoundException } from '@nestjs/common';\nimport { RepositoryTool } from './model/repository.tool.js';\nimport { CreateToolDto } from './model/dto/create.tool.dto.js';\nimport { FiltersDto } from './model/dto/filters.dto.js';\nimport { PaginationFilters } from './model/dto/pagination.filters.js';\nimport { SortFilters } from './model/dto/sort.filters.js';\nimport { CategoriesService } from '../categories/categories.service.js';\nimport { UsageLogsService } from '../usage-logs/usage-logs.service.js';\nimport { UpdateToolDto } from './model/dto/update.tool.dto.js';"
+            }
+          ],
+          "confidence_aggregate": 0.9,
+          "is_bonus": false
+        },
+        {
+          "id": "models_data_access_only",
+          "description": "Models/Repositories handle only data access (CRUD) without business rules",
+          "status": "UNCHECKED",
+          "points_awarded": 0,
+          "points_max": 1,
+          "evidence": [
+            {
+              "confidence": 0.9,
+              "reasoning": "RepositoryTool.getFiltersWhere() contains business logic with complex conditional filter construction including business rules for min/max cost handling and category name mapping. Repositories should only execute data access operations, not implement business rules.",
+              "location": "src/tools/model/repository.tool.ts:17-48",
+              "snippet": "getFiltersWhere(filters: FiltersDto) {\n  const whereFilters: Record<string, unknown> = {};\n  if (filters.category)\n    whereFilters['categories'] = { name: { equals: filters.category } };\n  if (filters.department)\n    whereFilters['owner_department'] = filters.department;\n  if (filters.min_cost !== undefined && filters.max_cost !== undefined) {\n    whereFilters['AND'] = [\n      { monthly_cost: { lte: filters.max_cost } },\n      { monthly_cost: { gte: filters.min_cost } }\n    ]\n  } else {\n    if (filters.min_cost !== undefined)\n      whereFilters['monthly_cost'] = { gte: filters.min_cost };\n    if (filters.max_cost !== undefined)\n      whereFilters['monthly_cost'] = { lte: filters.max_cost };\n  }\n  if (filters.status) whereFilters['status'] = filters.status;\n  return whereFilters;\n}"
+            },
+            {
+              "confidence": 0.88,
+              "reasoning": "RepositoryTool.paginatedTools() implements business logic including sort field mapping (SortName.cost to monthly_cost) and pagination calculation. Repository should receive ready-to-use Prisma query objects from service layer, not perform business transformations.",
+              "location": "src/tools/model/repository.tool.ts:50-70",
+              "snippet": "async paginatedTools(filters?: FiltersDto, pagination?: PaginationFilters, sortFilters?: SortFilters) {\n  let whereFilters: Record<string, unknown> = {};\n  const sort: Record<string, unknown> = {};\n  if (filters) {\n    whereFilters = this.getFiltersWhere(filters);\n  }\n  if (sortFilters) {\n    if (sortFilters.field === SortName.cost)\n      sort['monthly_cost'] = sortFilters.order ?? SortOrder.asc;\n    if (sortFilters.field === SortName.date)\n      sort['created_at'] = sortFilters.order ?? SortOrder.asc;\n    if (sortFilters.field === SortName.name)\n      sort['name'] = sortFilters.order ?? SortOrder.asc;\n  }\n  if (pagination) {\n    if (pagination.limit) {\n      if (pagination.page) {\n        return prisma.tools.findMany({\n          skip: (pagination.page - 1) * pagination.limit,\n          take: pagination.limit"
+            }
+          ],
+          "confidence_aggregate": 0.89,
+          "is_bonus": false
+        },
+        {
+          "id": "no_db_queries_in_controllers",
+          "description": "No direct database queries in controllers",
+          "status": "CHECKED",
+          "points_awarded": 1,
+          "points_max": 1,
+          "evidence": [
+            {
+              "confidence": 0.98,
+              "reasoning": "All controllers delegate to services without any direct database access. No Prisma client imports or database queries found in any controller file. ToolsController consistently calls service methods for all operations.",
+              "location": "src/tools/tools.controller.ts:1-30",
+              "snippet": "import { Body, Controller, Post, Get, Query, Param, Put, ParseIntPipe, Logger } from '@nestjs/common';\nimport { CreateToolDto } from './model/dto/create.tool.dto.js';\nimport { ToolsService } from './tools.service.js';\n// No prisma imports\n\n@Controller('api/tools')\nexport class ToolsController {\n  constructor(private readonly toolService: ToolsService) {}\n  \n  @Post()\n  async create(@Body() data: CreateToolDto) {\n    return this.toolService.createTool(data);\n  }"
+            },
+            {
+              "confidence": 0.95,
+              "reasoning": "AppController also follows the pattern of no database queries, only service delegation, confirming consistent application of this principle across all controllers.",
+              "location": "src/app.controller.ts:1-12",
+              "snippet": "import { Controller, Get } from '@nestjs/common';\nimport { AppService } from './app.service.js';\n\n@Controller()\nexport class AppController {\n  constructor(private readonly appService: AppService) {}\n\n  @Get()\n  getHello(): string {\n    return this.appService.getHello();\n  }\n}"
+            }
+          ],
+          "confidence_aggregate": 0.97,
+          "is_bonus": false
+        }
+      ],
+      "score": 3,
+      "max_score": 6,
+      "percentage": 50,
+      "confidence": 0.925,
+      "languages_detected": [
+        "TypeScript"
+      ],
+      "files_analyzed": [
+        "src/tools/tools.controller.ts",
+        "src/tools/tools.service.ts",
+        "src/tools/model/repository.tool.ts",
+        "src/categories/categories.service.ts",
+        "src/categories/model/categories.repository.ts",
+        "src/usage-logs/usage-logs.service.ts",
+        "src/usage-logs/model/repositoty.usage.logs.ts",
+        "src/app.controller.ts",
+        "src/app.service.ts"
+      ],
+      "tool_calls_total": 6,
+      "duration_seconds": 117.968,
+      "reasoning": "This NestJS application implements a 3-layer architecture (Controller-Service-Repository) with mixed results. The positive aspects include complete absence of database queries in controllers (all delegate to services) and services that properly centralize business logic with validation, orchestration, and HTTP independence. However, there are two critical violations: (1) ToolsController.getAll contains 30+ lines of business logic for query parsing, enum mapping, and filter construction that should be in the service layer, and (2) Repository classes contain business logic in methods like getFiltersWhere and paginatedTools which implement conditional filtering rules and field mapping instead of pure data access. The architecture foundation is solid but needs refinement to achieve proper separation of concerns, particularly moving business logic from controllers and repositories into the service layer where it belongs.",
+      "is_bonus": false
+    },
+    {
+      "rule_id": "configuration_management",
+      "rule_name": "Configuration Management & Security",
+      "checkboxes": [
+        {
+          "id": "env_vars_for_config",
+          "description": "Environment variables used for non-DB config (ports, URLs, API keys)",
+          "status": "CHECKED",
+          "points_awarded": 2,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "Application port configured via environment variable with sensible fallback to 3000",
+              "location": "src/main.ts:24",
+              "snippet": "await app.listen(process.env.PORT ?? 3000);"
+            },
+            {
+              "confidence": 0.95,
+              "reasoning": "Database connection parameters (host, user, password, database) all use environment variables",
+              "location": "lib/prisma.ts:5-9",
+              "snippet": "const adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});"
+            },
+            {
+              "confidence": 0.92,
+              "reasoning": "Prisma configuration uses environment variable for connection string",
+              "location": "prisma.config.ts:11",
+              "snippet": "datasource: {\n    url: process.env[\"MYSQL_CONNECTION_STRING\"],\n  }"
+            }
+          ],
+          "confidence_aggregate": 0.94,
+          "is_bonus": false
+        },
+        {
+          "id": "no_hardcoded_secrets",
+          "description": "No hardcoded credentials or secrets in source code",
+          "status": "CHECKED",
+          "points_awarded": 1,
+          "points_max": 1,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "All database credentials use environment variables (process.env.MYSQL_USER, process.env.MYSQL_PASSWORD, etc.) with no hardcoded values in source code. The .env.example file contains template values which is acceptable as it's a documentation file, not actual configuration.",
+              "location": "lib/prisma.ts:5-9",
+              "snippet": "const adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});"
+            },
+            {
+              "confidence": 0.9,
+              "reasoning": "Docker Compose configuration uses environment variable substitution (${MYSQL_PASSWORD}, ${MYSQL_USER}, etc.) instead of hardcoded values",
+              "location": "docker-compose.yml:10-13",
+              "snippet": "environment:\n      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}\n      MYSQL_DATABASE: ${MYSQL_DATABASE}\n      MYSQL_USER: ${MYSQL_USER}\n      MYSQL_PASSWORD: ${MYSQL_PASSWORD}"
+            }
+          ],
+          "confidence_aggregate": 0.93,
+          "is_bonus": false
+        }
+      ],
+      "score": 3,
+      "max_score": 3,
+      "percentage": 100,
+      "confidence": 0.935,
+      "languages_detected": [
+        "TypeScript",
+        "YAML",
+        "Shell"
+      ],
+      "files_analyzed": [
+        "lib/prisma.ts",
+        "prisma.config.ts",
+        ".env.example",
+        "src/main.ts",
+        "docker-compose.yml",
+        "src/app.module.ts",
+        "src/app.controller.ts",
+        "src/app.service.ts",
+        "src/tools/tools.module.ts",
+        "src/categories/categories.module.ts",
+        "src/usage-logs/usage-logs.module.ts"
+      ],
+      "tool_calls_total": 12,
+      "duration_seconds": 61.742,
+      "reasoning": "The codebase demonstrates excellent configuration management practices. All non-database configuration (application port) and database credentials use environment variables consistently. The main application uses process.env.PORT with a sensible fallback, database connections are configured via environment variables in lib/prisma.ts, and Docker Compose uses variable substitution. No hardcoded secrets were found in any source files - all sensitive data is externalized. The .env.example file contains template values for documentation purposes, which is standard practice and does not constitute a security issue.",
+      "is_bonus": false
+    },
+    {
+      "rule_id": "project_structure_organization",
+      "rule_name": "Project Structure & Organization",
+      "checkboxes": [
+        {
+          "id": "clear_folder_structure",
+          "description": "Clear folder structure with dedicated directories (controllers/, services/, models/)",
+          "status": "UNCHECKED",
+          "points_awarded": 0,
+          "points_max": 1,
+          "evidence": [
+            {
+              "confidence": 0.9,
+              "reasoning": "Project uses NestJS feature-based modules (tools/, categories/, usage-logs/) instead of traditional layered architecture with dedicated controllers/, services/, models/ directories. While the structure is clear and follows NestJS conventions, it does not match the specific requirement for dedicated directories mentioned in the criteria.",
+              "location": "src/ directory structure",
+              "snippet": "src/\n  tools/\n    tools.controller.ts\n    tools.service.ts\n    tools.module.ts\n    model/\n  categories/\n    categories.service.ts\n    categories.module.ts\n    model/\n  usage-logs/\n    usage-logs.service.ts\n    usage-logs.module.ts\n    model/"
+            },
+            {
+              "confidence": 0.85,
+              "reasoning": "Controllers, services, and models are co-located within feature modules rather than separated into dedicated top-level directories. This is a valid NestJS pattern but doesn't meet the literal requirement for 'dedicated directories (controllers/, services/, models/)'.",
+              "location": "src/tools/tools.controller.ts, src/tools/tools.service.ts, src/tools/model/",
+              "snippet": "// Controllers and services are within feature folders\n// Not in dedicated controllers/ or services/ directories"
+            }
+          ],
+          "confidence_aggregate": 0.88,
+          "is_bonus": false
+        },
+        {
+          "id": "consistent_naming",
+          "description": "Consistent naming conventions applied across all files",
+          "status": "UNCHECKED",
+          "points_awarded": 0,
+          "points_max": 1,
+          "evidence": [
+            {
+              "confidence": 0.92,
+              "reasoning": "Repository naming is inconsistent across modules: 'repository.tool.ts' uses prefix pattern, 'categories.repository.ts' uses suffix pattern, and 'repositoty.usage.logs.ts' contains a typo ('repositoty' instead of 'repository').",
+              "location": "src/tools/model/repository.tool.ts, src/categories/model/categories.repository.ts, src/usage-logs/model/repositoty.usage.logs.ts",
+              "snippet": "// Inconsistent repository file naming:\n// src/tools/model/repository.tool.ts (prefix)\n// src/categories/model/categories.repository.ts (suffix)\n// src/usage-logs/model/repositoty.usage.logs.ts (typo)"
+            },
+            {
+              "confidence": 0.88,
+              "reasoning": "Class naming for repositories is also inconsistent: RepositoryTool vs CategoriesRepository vs RepositoryUsageLogs, showing lack of unified naming convention.",
+              "location": "src/tools/model/repository.tool.ts:8, src/categories/model/categories.repository.ts:3, src/usage-logs/model/repositoty.usage.logs.ts:3",
+              "snippet": "export class RepositoryTool { ... }\nexport class CategoriesRepository { ... }\nexport class RepositoryUsageLogs { ... }"
+            }
+          ],
+          "confidence_aggregate": 0.9,
+          "is_bonus": false
+        },
+        {
+          "id": "config_utilities_isolated",
+          "description": "Configuration and utilities properly isolated in dedicated folders",
+          "status": "CHECKED",
+          "points_awarded": 1,
+          "points_max": 1,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "Configuration is properly isolated in the lib/ folder. The Prisma database client configuration with connection settings is separated from business logic in a dedicated lib/prisma.ts file.",
+              "location": "lib/prisma.ts:1-14",
+              "snippet": "import 'dotenv/config';\nimport { PrismaMariaDb } from '@prisma/adapter-mariadb';\nimport { PrismaClient } from '../generated/prisma/client.js';\n\nconst adapter = new PrismaMariaDb({\n  host: process.env.MYSQL_HOST,\n  user: process.env.MYSQL_USER,\n  password: process.env.MYSQL_PASSWORD,\n  database: process.env.MYSQL_DATABASE,\n  connectionLimit: 5,\n});\nconst prisma = new PrismaClient({ adapter });\n\nexport { prisma };"
+            },
+            {
+              "confidence": 0.9,
+              "reasoning": "Utility scripts are isolated in a dedicated scripts/ folder, separate from application code, containing database management and testing utilities.",
+              "location": "scripts/ directory",
+              "snippet": "scripts/\n  reset-all.sh\n  start-mysql.sh\n  test-connections.sh"
+            }
+          ],
+          "confidence_aggregate": 0.93,
+          "is_bonus": false
+        }
+      ],
+      "score": 1,
+      "max_score": 3,
+      "percentage": 33.33333333333333,
+      "confidence": 0.9033333333333333,
+      "languages_detected": [
+        "TypeScript",
+        "JavaScript",
+        "SQL",
+        "Shell"
+      ],
+      "files_analyzed": [
+        "src/app.module.ts",
+        "src/app.controller.ts",
+        "src/app.service.ts",
+        "src/main.ts",
+        "lib/prisma.ts",
+        "src/tools/tools.module.ts",
+        "src/tools/tools.controller.ts",
+        "src/tools/tools.service.ts",
+        "src/categories/categories.module.ts",
+        "src/categories/categories.service.ts",
+        "src/usage-logs/usage-logs.module.ts",
+        "src/usage-logs/usage-logs.service.ts",
+        "src/categories/model/categories.repository.ts",
+        "src/usage-logs/model/repositoty.usage.logs.ts",
+        "src/tools/model/repository.tool.ts"
+      ],
+      "tool_calls_total": 11,
+      "duration_seconds": 77.021,
+      "reasoning": "The project follows NestJS feature-based module architecture rather than traditional layered architecture. While this is a valid and modern approach, it does not meet the specific criteria requiring dedicated controllers/, services/, and models/ directories. Naming conventions show inconsistencies particularly in repository files with mixed patterns and a typo. However, configuration and utilities are properly isolated in dedicated folders (lib/ and scripts/), demonstrating good separation of concerns in that aspect. Overall score: 1/3 points.",
+      "is_bonus": false
+    },
+    {
+      "rule_id": "junior_code_quality",
+      "rule_name": "Junior-Level Code Quality Standards",
+      "checkboxes": [
+        {
+          "id": "descriptive_variable_names",
+          "description": "Variables have descriptive and meaningful names (no abbreviations like 't', 'x')",
+          "status": "CHECKED",
+          "points_awarded": 2,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "Variables use descriptive names like 'toolsPaginated', 'filtersApplied', 'avg_session_minutes' clearly indicating their purpose throughout the codebase",
+              "location": "src/tools/tools.service.ts:38-42",
+              "snippet": "const tools = await this.repository.getAll();\nconst toolsPaginated = await this.repository.paginatedTools(\n  filters,\n  pagination,\n  sortFilters,\n);"
+            },
+            {
+              "confidence": 0.92,
+              "reasoning": "Variables like 'average', 'toolId', 'whereFilters' are descriptive and meaningful, avoiding abbreviations",
+              "location": "src/usage-logs/usage-logs.service.ts:12-15",
+              "snippet": "async averageUsage(toolId: number) {\n  const average = await this.repository.averageUsageMinutes(toolId);\n  if (!average._avg.usage_minutes) return 0;\n  return average._avg.usage_minutes;\n}"
+            }
+          ],
+          "confidence_aggregate": 0.94,
+          "is_bonus": false
+        },
+        {
+          "id": "clear_function_names",
+          "description": "Functions have clear verb-based names explaining their purpose",
+          "status": "CHECKED",
+          "points_awarded": 2,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "Function names follow clear verb-based conventions: createTool, getAllPaginated, getDetailsById, update - all explain their purpose",
+              "location": "src/tools/tools.service.ts:20-30",
+              "snippet": "async createTool(data: CreateToolDto) {\n  const categorie = await this.categoriesService.getById(data.category_id);\n  if (!categorie)\n    throw new NotFoundException({\n      error: 'Categorie not found',\n      message: `Categorie with ID ${data.category_id} does not exist`,\n    });"
+            },
+            {
+              "confidence": 0.93,
+              "reasoning": "Functions have clear verb-based names explaining their purpose: getById, averageUsage, totalSession, countSessions",
+              "location": "src/usage-logs/usage-logs.service.ts:8-20",
+              "snippet": "async getById(id: number) {\n  return this.repository.getById(id);\n}\n\nasync averageUsage(toolId: number) {\n  const average = await this.repository.averageUsageMinutes(toolId);\n  if (!average._avg.usage_minutes) return 0;\n  return average._avg.usage_minutes;\n}"
+            }
+          ],
+          "confidence_aggregate": 0.94,
+          "is_bonus": false
+        },
+        {
+          "id": "functions_under_20_lines",
+          "description": "Majority of functions are under 20 lines",
+          "status": "CHECKED",
+          "points_awarded": 2,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "Majority of functions are well under 20 lines: createTool (11 lines), getById (3 lines), averageUsage (5 lines), totalSession (3 lines), create (3 lines), getDetails (3 lines), update (3 lines)",
+              "location": "src/tools/tools.service.ts:20-30",
+              "snippet": "async createTool(data: CreateToolDto) {\n  const categorie = await this.categoriesService.getById(data.category_id);\n  if (!categorie)\n    throw new NotFoundException({\n      error: 'Categorie not found',\n      message: `Categorie with ID ${data.category_id} does not exist`,\n    });\n    this.logger.error(\"Categorie not found\")\n  const result = await this.repository.create(data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+            },
+            {
+              "confidence": 0.92,
+              "reasoning": "Controller methods are very concise, all under 20 lines with most being 3-5 lines",
+              "location": "src/tools/tools.controller.ts:28-32",
+              "snippet": "@Post()\nasync create(@Body() data: CreateToolDto) {\n  return this.toolService.createTool(data);\n}"
+            }
+          ],
+          "confidence_aggregate": 0.94,
+          "is_bonus": false
+        },
+        {
+          "id": "no_function_exceeds_50_lines",
+          "description": "No function exceeds 50 lines (or properly decomposed if unavoidable)",
+          "status": "CHECKED",
+          "points_awarded": 2,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.98,
+              "reasoning": "ESLint enforces max-lines-per-function rule set to 50 lines as an error, ensuring no function can exceed this limit in the codebase",
+              "location": "eslint.config.mjs:28-36",
+              "snippet": "rules: {\n  '@typescript-eslint/no-explicit-any': 'error',\n  '@typescript-eslint/no-floating-promises': 'warn',\n  '@typescript-eslint/no-unsafe-argument': 'warn',\n  \"prettier/prettier\": [\"error\", { endOfLine: \"auto\" }],\n  \"max-lines-per-function\": [\"error\", 50],\n  \"max-params\": [\"error\",3]\n}"
+            },
+            {
+              "confidence": 0.95,
+              "reasoning": "Longest function found is getAll() at 42 lines, which is under the 50-line limit enforced by ESLint",
+              "location": "src/tools/tools.controller.ts:34-72",
+              "snippet": "@Get()\nasync getAll(@Query() queries: QueryTool) {\n  const pagination: PaginationFilters = {};\n  const filters: FiltersDto = {};\n  const sortField: Record<string, string> = {};"
+            }
+          ],
+          "confidence_aggregate": 0.97,
+          "is_bonus": false
+        },
+        {
+          "id": "meaningful_comments",
+          "description": "Comments explain complex logic without stating obvious code",
+          "status": "UNCHECKED",
+          "points_awarded": 0,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.85,
+              "reasoning": "No comments found in the main business logic files. Complex logic like filter building in getAll() (42 lines) and date calculations in usage logs could benefit from explanatory comments to clarify intent",
+              "location": "src/tools/tools.controller.ts:34-72",
+              "snippet": "@Get()\nasync getAll(@Query() queries: QueryTool) {\n  const pagination: PaginationFilters = {};\n  const filters: FiltersDto = {};\n  const sortField: Record<string, string> = {};\n  if (queries.page !== undefined) pagination.page = queries.page;"
+            },
+            {
+              "confidence": 0.88,
+              "reasoning": "Complex date calculation logic lacks comments explaining why it calculates from day 1 to day 30 of the month, making the business logic unclear",
+              "location": "src/usage-logs/model/repositoty.usage.logs.ts:24-32",
+              "snippet": "session_date: {\n  gte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 1),\n  ),\n  lte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 30),\n  ),\n}"
+            }
+          ],
+          "confidence_aggregate": 0.87,
+          "is_bonus": false
+        },
+        {
+          "id": "no_dead_code",
+          "description": "No commented-out dead code left in codebase",
+          "status": "CHECKED",
+          "points_awarded": 1,
+          "points_max": 1,
+          "evidence": [
+            {
+              "confidence": 0.92,
+              "reasoning": "Searched through all source files and found no commented-out code blocks or dead code. All code is active and used in the application flow",
+              "location": "src/tools/tools.controller.ts:1-85",
+              "snippet": "import {\n  Body,\n  Controller,\n  Post,\n  Get,\n  Query,\n  Param,\n  Put,\n  ParseIntPipe,\n  Logger,\n} from '@nestjs/common';"
+            }
+          ],
+          "confidence_aggregate": 0.92,
+          "is_bonus": false
+        },
+        {
+          "id": "no_code_duplication",
+          "description": "No code duplication detected (similar logic is factorized)",
+          "status": "UNCHECKED",
+          "points_awarded": 0,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "The cost formatting logic 'Number(result.monthly_cost.toFixed(2))' is duplicated 3 times across createTool, getAllPaginated, and update methods. This should be extracted into a helper function like formatMonthlyCost()",
+              "location": "src/tools/tools.service.ts:29",
+              "snippet": "return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}"
+            },
+            {
+              "confidence": 0.88,
+              "reasoning": "Repetitive filter copying logic with 5 similar if statements that could be refactored into a more DRY approach using Object.entries or a loop",
+              "location": "src/tools/tools.service.ts:45-51",
+              "snippet": "if (filters.category) filtersApplied['category'] = filters['category'];\nif (filters.department)\n  filtersApplied['department'] = filters['department'];\nif (filters.max_cost) filtersApplied['max_cost'] = filters['max_cost'];\nif (filters.min_cost) filtersApplied['min_cost'] = filters['min_cost'];\nif (filters.status) filtersApplied['status'] = filters['status'];"
+            }
+          ],
+          "confidence_aggregate": 0.92,
+          "is_bonus": false
+        },
+        {
+          "id": "no_magic_values",
+          "description": "Magic numbers and strings are replaced by named constants",
+          "status": "UNCHECKED",
+          "points_awarded": 0,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "Magic number '2' appears multiple times for decimal places in toFixed(2). Should be a named constant like DECIMAL_PLACES = 2 or CURRENCY_PRECISION = 2",
+              "location": "src/tools/tools.service.ts:29",
+              "snippet": "Number(result.monthly_cost.toFixed(2))"
+            },
+            {
+              "confidence": 0.93,
+              "reasoning": "Magic numbers 1 and 30 for day of month calculations. Should be constants like MONTH_START_DAY = 1, MONTH_END_DAY = 30 to clarify intent",
+              "location": "src/usage-logs/model/repositoty.usage.logs.ts:24-28",
+              "snippet": "session_date: {\n  gte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 1),\n  ),\n  lte: new Date(\n    new Date().setFullYear(date.getFullYear(), date.getMonth(), 30),\n  ),"
+            },
+            {
+              "confidence": 0.9,
+              "reasoning": "Magic number 5 for connection limit. Should be a named constant or environment variable like MAX_DB_CONNECTIONS for better configurability",
+              "location": "lib/prisma.ts:9",
+              "snippet": "connectionLimit: 5,"
+            },
+            {
+              "confidence": 0.85,
+              "reasoning": "Magic number 3000 for default port. While using ?? operator is good practice, 3000 should be a named constant like DEFAULT_PORT = 3000",
+              "location": "src/main.ts:18",
+              "snippet": "await app.listen(process.env.PORT ?? 3000);"
+            }
+          ],
+          "confidence_aggregate": 0.91,
+          "is_bonus": false
+        },
+        {
+          "id": "structured_logging",
+          "description": "Structured logging implemented with appropriate levels (INFO/ERROR minimum)",
+          "status": "CHECKED",
+          "points_awarded": 2,
+          "points_max": 2,
+          "evidence": [
+            {
+              "confidence": 0.95,
+              "reasoning": "Logger is properly initialized with class name for context using NestJS Logger in ToolsController, providing structured logging capability",
+              "location": "src/tools/tools.controller.ts:25",
+              "snippet": "private readonly logger = new Logger(ToolsController.name);"
+            },
+            {
+              "confidence": 0.92,
+              "reasoning": "Logger is initialized in ToolsService and uses ERROR level for error conditions, demonstrating appropriate log level usage",
+              "location": "src/tools/tools.service.ts:13",
+              "snippet": "private readonly logger = new Logger(ToolsService.name);"
+            },
+            {
+              "confidence": 0.88,
+              "reasoning": "Logger is used in repository layer with WARN level for debugging filter conditions, showing structured logging implementation across layers",
+              "location": "src/tools/model/repository.tool.ts:12",
+              "snippet": "private readonly logger = new Logger(RepositoryTool.name)"
+            }
+          ],
+          "confidence_aggregate": 0.92,
+          "is_bonus": true
+        }
+      ],
+      "score": 11,
+      "max_score": 17,
+      "percentage": 64.70588235294117,
+      "confidence": 0.9255555555555556,
+      "languages_detected": [
+        "TypeScript"
+      ],
+      "files_analyzed": [
+        "src/tools/tools.controller.ts",
+        "src/tools/tools.service.ts",
+        "src/categories/categories.service.ts",
+        "src/usage-logs/usage-logs.service.ts",
+        "src/tools/model/repository.tool.ts",
+        "src/usage-logs/model/repositoty.usage.logs.ts",
+        "src/tools/model/dto/create.tool.dto.ts",
+        "src/tools/model/dto/filters.dto.ts",
+        "src/tools/model/dto/sort.filters.ts",
+        "lib/prisma.ts",
+        "src/main.ts",
+        "eslint.config.mjs"
+      ],
+      "tool_calls_total": 11,
+      "duration_seconds": 134.916,
+      "reasoning": "This NestJS TypeScript project demonstrates good junior-level code quality in several areas: descriptive variable names, clear function naming conventions, appropriate function lengths (enforced by ESLint max 50 lines), no dead code, and structured logging with NestJS Logger. However, it falls short in three critical areas: (1) lack of meaningful comments for complex logic like date calculations and filter building, (2) code duplication in cost formatting logic appearing 3 times and repetitive filter copying, and (3) multiple magic values including decimal precision (2), date calculations (1, 30), connection limits (5), and default port (3000) that should be named constants. The codebase scores 11 out of 17 points, showing solid fundamentals but needing improvement in documentation, DRY principles, and constant extraction.",
+      "is_bonus": false
+    }
+  ],
+  "started_at": "2026-03-09T17:16:45.643Z",
+  "completed_at": "2026-03-09T17:19:00.583Z",
+  "duration_seconds": 134.94
+}

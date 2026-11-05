@@ -1,0 +1,14 @@
+{
+  "pass_id": "crud_api_static_analysis",
+  "pass_name": "Tools API Implementation - Static Code Review (GET/POST/PUT)",
+  "pass_number": 2,
+  "started_at": "2026-03-09T17:15:09.099Z",
+  "rules_count": 6,
+  "conditional": false,
+  "dependencies": [],
+  "completed_at": "2026-03-09T17:16:45.638Z",
+  "duration_seconds": 96.539,
+  "score": 36,
+  "max_score": 59,
+  "percentage": 61.016949152542374
+}

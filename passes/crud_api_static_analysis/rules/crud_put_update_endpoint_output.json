@@ -1,0 +1,134 @@
+{
+  "rule_id": "crud_put_update_endpoint",
+  "rule_name": "PUT /api/tools/:id - Update Endpoint Implementation",
+  "checkboxes": [
+    {
+      "id": "put_endpoint_exists",
+      "description": "Endpoint PUT /api/tools/:id exists with path parameter and body parsing",
+      "status": "CHECKED",
+      "points_awarded": 2,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.98,
+          "reasoning": "PUT endpoint exists at /api/tools/:id with path parameter :id validated via ParseIntPipe and body parsed via @Body() decorator with UpdateToolDto class",
+          "location": "src/tools/tools.controller.ts:76-81",
+          "snippet": "@Put(':id')\nasync update(\n  @Param('id', ParseIntPipe) id: number,\n  @Body() data: UpdateToolDto,\n) {\n  return this.toolService.update(id, data);\n}"
+        },
+        {
+          "confidence": 0.95,
+          "reasoning": "Global ValidationPipe ensures body is validated against UpdateToolDto class validators and transformed to proper types",
+          "location": "src/main.ts:8",
+          "snippet": "app.useGlobalPipes(new ValidationPipe({transform: true}));"
+        }
+      ],
+      "confidence_aggregate": 0.97,
+      "is_bonus": false
+    },
+    {
+      "id": "put_id_validated",
+      "description": "ID parameter validated and 404 returned if tool not found",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "The service method calls repository.update() directly without checking if the tool exists first. While Prisma will throw an error if the record doesn't exist (P2025), there's no explicit 404 handling like in the getDetailsById method which properly checks and throws NotFoundException",
+          "location": "src/tools/tools.service.ts:87-90",
+          "snippet": "async update(id: number, data: UpdateToolDto) {\n  const result = await this.repository.update(id, data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "The GET endpoint properly validates existence and returns 404. The PUT endpoint lacks this explicit validation pattern, relying on Prisma's implicit error which may not return a proper 404 status code",
+          "location": "src/tools/tools.service.ts:73-77",
+          "snippet": "async getDetailsById(id: number) {\n  const tool = await this.repository.getById(id);\n  if (!tool)\n    throw new NotFoundException({\n      error: 'Tool not found',\n      message: `Tool with ID ${id} does not exist`,\n    });"
+        }
+      ],
+      "confidence_aggregate": 0.91,
+      "is_bonus": false
+    },
+    {
+      "id": "partial_update_supported",
+      "description": "Partial update implemented (only provided fields are updated)",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 2,
+      "evidence": [
+        {
+          "confidence": 0.95,
+          "reasoning": "monthly_cost and status are marked with @IsNotEmpty(), making them REQUIRED fields. True partial update means ALL fields should be optional. Clients must provide these fields even if they don't want to change them",
+          "location": "src/tools/model/dto/update.tool.dto.ts:32-39",
+          "snippet": "@IsNumber({ maxDecimalPlaces: 2 })\n@IsNotEmpty()\n@Min(0)\nmonthly_cost: number;\n\n@IsEnum(tools_status)\n@IsNotEmpty()\nstatus: tools_status;"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "While some fields like name, description, vendor, etc. are properly marked as optional with @IsOptional(), the presence of required fields means this is NOT a true partial update implementation",
+          "location": "src/tools/model/dto/update.tool.dto.ts:14-30",
+          "snippet": "@IsString()\n@Length(2, 100)\n@IsOptional()\nname?: string;\n\n@IsOptional()\n@IsString()\ndescription?: string;"
+        }
+      ],
+      "confidence_aggregate": 0.93,
+      "is_bonus": false
+    },
+    {
+      "id": "validation_rules_reused",
+      "description": "Validation rules reused from POST endpoint or shared validator",
+      "status": "UNCHECKED",
+      "points_awarded": 0,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.93,
+          "reasoning": "UpdateToolDto and CreateToolDto are completely separate classes with duplicated validation decorators. No shared validator, base class, or validation schema reuse. Each field's validation is redefined independently",
+          "location": "src/tools/model/dto/update.tool.dto.ts and src/tools/model/dto/create.tool.dto.ts",
+          "snippet": "Both files define separate classes with similar but not shared validators"
+        }
+      ],
+      "confidence_aggregate": 0.93,
+      "is_bonus": false
+    },
+    {
+      "id": "update_response_proper",
+      "description": "Response returns 200 OK with updated complete object",
+      "status": "CHECKED",
+      "points_awarded": 1,
+      "points_max": 1,
+      "evidence": [
+        {
+          "confidence": 0.92,
+          "reasoning": "Returns the complete updated tool object with all fields, including transformed monthly_cost. NestJS defaults to 200 OK status for successful PUT requests",
+          "location": "src/tools/tools.service.ts:87-90",
+          "snippet": "async update(id: number, data: UpdateToolDto) {\n  const result = await this.repository.update(id, data);\n  return {...result, monthly_cost: Number(result.monthly_cost.toFixed(2))}\n}"
+        },
+        {
+          "confidence": 0.9,
+          "reasoning": "Prisma's update() method returns the complete updated record by default, ensuring all fields are included in the response",
+          "location": "src/tools/model/repository.tool.ts:95-99",
+          "snippet": "async update(id: number, data: UpdateToolDto) {\n  return prisma.tools.update({\n    where: { id },\n    data,\n  });\n}"
+        }
+      ],
+      "confidence_aggregate": 0.91,
+      "is_bonus": false
+    }
+  ],
+  "score": 3,
+  "max_score": 8,
+  "percentage": 37.5,
+  "confidence": 0.93,
+  "languages_detected": [
+    "TypeScript"
+  ],
+  "files_analyzed": [
+    "src/tools/tools.controller.ts",
+    "src/tools/tools.service.ts",
+    "src/tools/model/repository.tool.ts",
+    "src/tools/model/dto/update.tool.dto.ts",
+    "src/tools/model/dto/create.tool.dto.ts",
+    "src/main.ts"
+  ],
+  "tool_calls_total": 10,
+  "duration_seconds": 96.516,
+  "reasoning": "The PUT endpoint implementation has significant issues. While the endpoint exists with proper path parameter and body parsing (2/2 points), and returns the correct response format (1/1 points), it fails on three critical requirements. First, there is no explicit 404 validation before update - the service relies on Prisma's implicit error handling rather than checking existence and throwing NotFoundException like the GET endpoint does. Second, partial update is not properly supported because monthly_cost and status fields are marked as required with @IsNotEmpty(), forcing clients to provide these values even when they don't want to change them. Third, validation rules are completely duplicated between CreateToolDto and UpdateToolDto with no reuse mechanism. Total score: 3/8 points.",
+  "is_bonus": false
+}
